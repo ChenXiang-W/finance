@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金融欺诈智能检测系统</title>
+  <!-- 字体：优先用国内镜像，Google Fonts 作为备用 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
+  <link rel="stylesheet" href="css/style.css?v=9">
+</head>
+<body>
+  <!-- ============================================================ -->
+  <!-- 顶部导航 -->
+  <!-- ============================================================ -->
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">
+      <div class="logo-icon">🛡</div>
+      <span>金融欺诈智能检测系统</span>
+    </a>
+    <div class="navbar-actions">
+      <button class="nav-icon-btn" id="btnFullscreen" onclick="toggleFullscreen()" title="大屏模式 F11">⛶</button>
+      <button class="nav-icon-btn" id="btnTheme" onclick="toggleTheme()" title="切换主题">☀</button>
+      <button class="nav-icon-btn" id="btnShortcuts" onclick="showShortcuts()" title="快捷键 ?">⌨</button>
+      <div class="status-badge" id="statusBadge">
+        <span class="status-dot"></span>
+        <span id="apiStatus">系统就绪</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================================ -->
+  <!-- 主容器：侧边栏 + 主区域 -->
+  <!-- ============================================================ -->
+
+  <!-- ========== HUD 状态条 ========== -->
+
+  <!-- ========== 威胁滚动播报 ========== -->
+  <div class="threat-ticker">
+    <div class="ticker-label">⚠ ALERT</div>
+    <div class="ticker-track" id="tickerTrack">
+      <span>■ 新型冒充京东客服诈骗活跃度+12%</span>
+      <span>■ 东南亚杀猪盘服务器集群新上线 3 个节点</span>
+      <span>■ AI 深度伪造语音诈骗案例增长 47%</span>
+      <span>■ 虚假投资 App 在黑产论坛低价甩卖</span>
+      <span>■ 征信修复骗局关联账户 +283</span>
+      <span>■ 伪基站活动半径扩展至二线城市</span>
+      <span>■ 冒充公检法话术模板更新至 v4.2</span>
+      <span>■ 虚拟货币洗钱通道新增 2 条</span>
+      <span>■ 新型冒充京东客服诈骗活跃度+12%</span>
+      <span>■ 东南亚杀猪盘服务器集群新上线 3 个节点</span>
+      <span>■ AI 深度伪造语音诈骗案例增长 47%</span>
+      <span>■ 虚假投资 App 在黑产论坛低价甩卖</span>
+      <span>■ 征信修复骗局关联账户 +283</span>
+      <span>■ 伪基站活动半径扩展至二线城市</span>
+      <span>■ 冒充公检法话术模板更新至 v4.2</span>
+      <span>■ 虚拟货币洗钱通道新增 2 条</span>
+    </div>
+  </div>
+
+  <!-- ========== HUD 状态条 ========== -->
+  <div class="hud-strip" id="hudStrip">
+    <div class="hud-item">
+      <span class="hud-label">SYS.ONLINE</span>
+      <span class="hud-value hud-green">TRUE</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">THREAT.LEVEL</span>
+      <span class="hud-value hud-yellow" id="hudThreatLevel">ELEVATED</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">NODES.ACTIVE</span>
+      <span class="hud-value hud-cyan" id="hudNodes">1,024</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">ENCRYPT</span>
+      <span class="hud-value hud-green">AES-256</span>
+    </div>
+    <div class="hud-item">
+      <span class="hud-label">UPLINK</span>
+      <span class="hud-value hud-cyan">◆ STABLE</span>
+    </div>
+    <div class="hud-clock" id="hudClock">00:00:00</div>
+  </div>
+
+  <div class="app-container">
+
+    <!-- ========== 左侧可伸缩侧边栏 ========== -->
+    <aside class="sidebar" id="sidebar">
+      <!-- 折叠态：图标按钮 -->
+      <div class="sidebar-icons" id="sidebarIcons">
+        <button class="sidebar-icon-btn active" data-tab="history" onclick="expandSidebar('history')" title="检测历史">
+          <span>💬</span>
+        </button>
+        <button class="sidebar-icon-btn" data-tab="stats" onclick="expandSidebar('stats')" title="统计概览">
+          <span>📈</span>
+        </button>
+        <button class="sidebar-icon-btn" data-tab="settings" onclick="expandSidebar('settings')" title="系统设置">
+          <span>⚙</span>
+        </button>
+        <button class="sidebar-icon-btn sidebar-toggle-btn" onclick="toggleSidebar()" title="展开面板">
+          <span class="toggle-arrow">▸</span>
+        </button>
+      </div>
+
+      <!-- 展开态：完整面板 -->
+      <div class="sidebar-panel" id="sidebarPanel">
+        <div class="sidebar-panel-header">
+          <span id="sidebarPanelTitle">检测历史</span>
+          <button class="sidebar-collapse-btn" onclick="collapseSidebar()" title="收起面板">
+            <span>◂</span>
+          </button>
+        </div>
+
+        <!-- 标签导航 -->
+        <div class="sidebar-tabs">
+          <button class="sidebar-tab active" data-tab="history" onclick="switchSidebarTab('history')">💬 历史</button>
+          <button class="sidebar-tab" data-tab="stats" onclick="switchSidebarTab('stats')">📈 统计</button>
+          <button class="sidebar-tab" data-tab="settings" onclick="switchSidebarTab('settings')">⚙ 设置</button>
+        </div>
+
+        <!-- 标签内容 -->
+        <div class="sidebar-content">
+          <!-- 历史 -->
+          <div class="sidebar-tab-content active" id="sidebar-history">
+            <div class="sidebar-toolbar">
+              <input type="text" class="history-search" id="historySearch" placeholder="搜索历史…" oninput="filterHistory()">
+              <button class="btn btn-outline btn-sm" onclick="loadHistory()">🔄 刷新</button>
+              <button class="btn btn-danger btn-sm" onclick="clearHistory()">🗑 清空</button>
+            </div>
+            <div id="historyArea">
+              <div class="empty-mini">暂无检测记录</div>
+            </div>
+          </div>
+
+          <!-- 统计 -->
+          <div class="sidebar-tab-content" id="sidebar-stats">
+            <div class="sidebar-stat-card">
+              <div class="sidebar-stat-num" id="totalDetections">0</div>
+              <div class="sidebar-stat-label">检测总数</div>
+            </div>
+            <div class="sidebar-stat-card">
+              <div class="sidebar-stat-num" id="highRiskCount">0</div>
+              <div class="sidebar-stat-label">高风险告警</div>
+            </div>
+            <div class="sidebar-stat-card">
+              <div class="sidebar-stat-num" id="avgRiskScore">—</div>
+              <div class="sidebar-stat-label">平均风险评分</div>
+            </div>
+            <div class="sidebar-stat-card">
+              <div class="sidebar-stat-num" id="sessionCount">1</div>
+              <div class="sidebar-stat-label">活跃会话</div>
+            </div>
+            <div class="wordcloud-container" id="wordcloudChart"></div>
+          </div>
+
+          <!-- 设置 -->
+          <div class="sidebar-tab-content" id="sidebar-settings">
+            <div class="settings-field">
+              <label>DeepSeek API Key</label>
+              <input type="password" class="settings-input" id="apiKeyInput"
+                placeholder="sk-xxxxxxxxxxxxxxxx">
+              <span class="settings-hint">驱动金融反欺诈智能体的深度分析</span>
+            </div>
+            <div class="settings-field">
+              <label>API 地址</label>
+              <input type="text" class="settings-input" id="apiUrlInput"
+                value="https://api.deepseek.com">
+            </div>
+            <div class="settings-field">
+              <label>模型</label>
+              <input type="text" class="settings-input" id="modelInput"
+                value="deepseek-chat">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveSettings()" style="margin-top:4px;">💾 保存设置</button>
+            <span class="settings-saved" id="settingsSaved" style="display:none;">✓ 已保存</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ========== 主区域 ========== -->
+    <main class="main-area">
+
+      <!-- 第一区：输入面板 -->
+      <section class="input-section">
+        <div class="section-header">
+          <div class="section-title">
+            <span class="icon-dot purple"></span>
+            <h2>文本检测</h2>
+          </div>
+          <span class="section-hint">输入金融相关文本，智能体将进行深度风险分析</span>
+        </div>
+
+        <div class="examples-row">
+          <span class="example-tag" onclick="fillExample('example1')">📱 冒充客服</span>
+          <span class="example-tag" onclick="fillExample('example2')">💰 虚假投资</span>
+          <span class="example-tag" onclick="fillExample('example3')">🏛 冒充公检法</span>
+          <span class="example-tag" onclick="fillExample('example4')">📋 信贷诈骗</span>
+        </div>
+
+        <div class="status-row">
+          <div class="status-indicator"><span class="si-dot si-active"></span> 检测引擎</div>
+          <div class="status-indicator"><span class="si-dot si-active"></span> AI 智能体</div>
+          <div class="status-indicator"><span class="si-dot si-idle"></span> 威胁情报</div>
+          <div class="status-indicator"><span class="si-dot si-active"></span> 规则引擎 v3.7</div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="quick-action-btn" onclick="toggleBatchMode()"><span class="qa-dot" style="background:var(--neon-cyan);"></span> 批量检测</button>
+          <button class="quick-action-btn" onclick="showUrlInput()"><span class="qa-dot" style="background:var(--neon-magenta);"></span> URL 扫描</button>
+          <button class="quick-action-btn" onclick="downloadReport()"><span class="qa-dot" style="background:var(--neon-yellow);"></span> 生成报告</button>
+          <button class="quick-action-btn" onclick="copyResult()"><span class="qa-dot" style="background:var(--neon-green);"></span> 分享结果</button>
+          <button class="quick-action-btn" onclick="showShortcuts()"><span class="qa-dot" style="background:var(--text-dim);"></span> 快捷键</button>
+        </div>
+
+        <!-- URL 扫描行 -->
+        <div class="url-scan-row" id="urlScanRow" style="display:none;">
+          <input type="text" class="url-input" id="urlInput" placeholder="粘贴 URL 链接，自动抓取并分析…">
+          <button class="btn btn-outline btn-sm" onclick="scanUrl()">🔗 扫描</button>
+          <button class="btn btn-outline btn-sm" onclick="hideUrlInput()">✕</button>
+        </div>
+
+        <!-- 批量模式 -->
+        <div class="batch-row" id="batchRow" style="display:none;">
+          <div class="batch-info">
+            <span>📋 批量模式：每行一条文本</span>
+            <span class="batch-counter" id="batchCounter">0 条</span>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="runBatchDetect()">▶ 全部检测</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleBatchMode()">✕ 退出</button>
+        </div>
+
+        <!-- 威胁态势地图 -->
+        <div class="threat-map-row" id="threatMapRow">
+          <div class="threat-map-header">
+            <span>🌐 全球威胁态势</span>
+            <button class="btn btn-outline btn-xs" onclick="toggleThreatMap()">− 收起</button>
+          </div>
+          <div class="threat-map-container" id="threatMapChart"></div>
+        </div>
+
+        <textarea
+          class="text-input-area"
+          id="textInput"
+          placeholder="请粘贴短信、聊天记录、邮件或广告文案，智能体将自动识别欺诈风险并进行多维度深度分析…"
+        ></textarea>
+
+        <div class="input-actions">
+          <div class="input-stats">
+            <span id="charCount">0</span> / 10000 字符
+          </div>
+          <div class="input-buttons">
+            <button class="btn btn-outline btn-sm" onclick="clearInput()">
+              <span>🗑</span> 清空
+            </button>
+            <button class="btn btn-primary" id="detectBtn" onclick="detectText()">
+              <span>🔍</span> 开始检测
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 第二区：双栏核心 -->
+      <section class="core-section">
+        <!-- 左栏：检测报告 + 图表 -->
+        <div class="panel panel-results" id="resultsPanel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="icon-dot teal"></span>
+              <h3>检测报告</h3>
+            </div>
+            <div class="panel-actions" id="resultActions" style="display:none;">
+              <button class="btn btn-outline btn-xs" onclick="copyResult()" title="复制结果">📋</button>
+              <button class="btn btn-outline btn-xs" onclick="downloadReport()" title="下载报告">⬇</button>
+            </div>
+          </div>
+
+          <div class="panel-body" id="resultArea">
+            <!-- 空状态 — 迷你仪表盘 -->
+            <div class="empty-state" id="resultEmpty">
+              <div class="empty-icon">🔍</div>
+              <div class="empty-title">系统待命中</div>
+              <div class="empty-desc">输入文本并点击「开始检测」启动分析</div>
+              <div class="mini-stats">
+                <div class="mini-stat">
+                  <div class="mini-stat-val" id="miniTodayDetections">—</div>
+                  <div class="mini-stat-lbl">今日检测</div>
+                </div>
+                <div class="mini-stat">
+                  <div class="mini-stat-val" id="miniAvgRisk">—</div>
+                  <div class="mini-stat-lbl">平均风险</div>
+                </div>
+                <div class="mini-stat">
+                  <div class="mini-stat-val" id="miniHighRisk">—</div>
+                  <div class="mini-stat-lbl">高危告警</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 加载 -->
+            <div class="loading-state" id="loadingOverlay">
+              <canvas class="waveform-canvas" id="waveformCanvas" width="260" height="64"></canvas>
+              <canvas class="dna-canvas" id="dnaCanvas" width="180" height="180" style="display:none;"></canvas>
+              <button class="btn btn-outline btn-xs" onclick="toggleLoadingAnim()" style="margin-top:6px;font-size:10px;">🔄 切换动画</button>
+              <div class="loading-text">AI 分析中<span class="loading-dots"></span></div>
+            </div>
+
+            <!-- 结果内容 -->
+            <div id="resultContent" style="display:none;">
+              <!-- 风险仪表盘 + 评分 -->
+              <div class="gauge-row" id="gaugeRow"></div>
+              <!-- 风险指标条 -->
+              <div class="risk-indicator" id="riskIndicator"></div>
+              <!-- 分类饼图 + 雷达图 -->
+              <div class="charts-row" id="chartsRow"></div>
+              <!-- 风险因子 -->
+              <div class="analysis-section" id="riskFactorsSection"></div>
+              <!-- 诊断与建议 -->
+              <div class="analysis-section" id="summarySection"></div>
+              <div class="analysis-section" id="suggestionsSection"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右栏：AI 智能体对话 -->
+        <div class="panel panel-agent" id="agentPanel">
+          <div class="panel-header">
+            <div class="panel-title">
+              <span class="icon-dot purple"></span>
+              <h3>🤖 金融反欺诈智能体</h3>
+            </div>
+            <span class="agent-badge">DeepSeek AI</span>
+          </div>
+
+          <div class="panel-body agent-body">
+            <div class="agent-messages" id="agentMessages">
+              <div class="agent-msg agent-msg-system">
+                <div class="agent-avatar">🛡️</div>
+                <div class="agent-bubble">
+                  <div class="agent-bubble-text">
+                    <p>你好，我是<b>金融反欺诈分析智能体</b>。</p>
+                    <p>我专注于识别各类金融诈骗手段，包括：</p>
+                    <ul>
+                      <li><b>电信诈骗</b>：冒充客服、公检法、熟人等</li>
+                      <li><b>投资诈骗</b>：虚假理财、杀猪盘、庞氏骗局</li>
+                      <li><b>信贷诈骗</b>：虚假贷款、征信修复、套路贷</li>
+                      <li><b>钓鱼诈骗</b>：伪基站短信、钓鱼链接、虚假中奖</li>
+                    </ul>
+                    <p>请在上方输入文本并点击<b>「开始检测」</b>，我将为你提供多维度的深度分析。</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="agent-input-row">
+              <textarea
+                class="agent-input"
+                id="agentInput"
+                placeholder="向智能体追问更多细节…"
+                rows="1"
+                aria-label="向智能体输入追问内容"
+                onkeydown="handleAgentKeydown(event)"
+              ></textarea>
+              <button class="btn btn-primary btn-sm" id="agentSendBtn"
+                onclick="sendAgentMessage()" aria-label="发送消息">
+                <span>➤</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- 数据粒子背景 -->
+  <canvas id="particleCanvas"></canvas>
+
+  <!-- 扫描线 -->
+  <div class="scan-line"></div>
+
+  <!-- 文件拖拽覆盖层 -->
+  <div class="drop-overlay" id="dropOverlay">
+    <div class="drop-icon">📂</div>
+    <div class="drop-text">释放文件以导入文本</div>
+    <div class="drop-hint">支持 .txt .csv .json .pdf（文字层）</div>
+  </div>
+
+  <!-- 快捷键弹窗 -->
+  <div class="shortcut-modal" id="shortcutModal">
+    <div class="shortcut-modal-bg" onclick="hideShortcuts()"></div>
+    <div class="shortcut-modal-content">
+      <div class="shortcut-modal-header">
+        <span>⌨ 快捷键</span>
+        <button class="btn btn-outline btn-xs" onclick="hideShortcuts()">✕</button>
+      </div>
+      <div class="shortcut-list">
+        <div class="shortcut-row"><kbd>Ctrl+Enter</kbd><span>开始检测</span></div>
+        <div class="shortcut-row"><kbd>Ctrl+B</kbd><span>批量模式</span></div>
+        <div class="shortcut-row"><kbd>Ctrl+U</kbd><span>URL 扫描</span></div>
+        <div class="shortcut-row"><kbd>Ctrl+F</kbd><span>搜索历史</span></div>
+        <div class="shortcut-row"><kbd>F11</kbd><span>大屏模式</span></div>
+        <div class="shortcut-row"><kbd>Ctrl+D</kbd><span>切换主题</span></div>
+        <div class="shortcut-row"><kbd>?</kbd><span>显示此面板</span></div>
+        <div class="shortcut-row"><kbd>Esc</kbd><span>关闭面板</span></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/modules/config.js"></script>
+  <script src="js/modules/utils.js"></script>
+  <script src="js/modules/api.js"></script>
+  <script src="js/modules/charts.js"></script>
+  <script src="js/modules/agent.js"></script>
+  <script src="js/modules/sidebar.js"></script>
+  <script src="js/modules/detect.js"></script>
+  <script src="js/modules/features.js"></script>
+  <script src="js/modules/main.js"></script>
+</body>
+</html>
