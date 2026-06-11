@@ -10,9 +10,67 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
-  <link rel="stylesheet" href="css/style.css?v=9">
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/home.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/utilities.css">
 </head>
 <body>
+  <!-- ============================================================ -->
+  <!-- 登录覆盖层 -->
+  <!-- ============================================================ -->
+  <div class="home-overlay" id="homeOverlay">
+    <div class="home-card" id="homeCard">
+      <div class="home-logo">
+        <div class="logo-hex">
+          <svg width="44" height="48" viewBox="0 0 44 48" fill="none">
+            <polygon points="22,2 40,12 40,34 22,44 4,34 4,12" stroke="currentColor" stroke-width="1.2" fill="none"/>
+            <line x1="22" y1="2" x2="22" y2="44" stroke="currentColor" stroke-width="0.6" opacity="0.3"/>
+            <line x1="4" y1="23" x2="40" y2="23" stroke="currentColor" stroke-width="0.6" opacity="0.3"/>
+            <circle cx="22" cy="23" r="4" fill="currentColor" opacity="0.8"/>
+          </svg>
+        </div>
+        <h1>金融欺诈智能检测系统</h1>
+        <div class="home-subtitle">AI-Powered Financial Fraud Intelligence</div>
+      </div>
+
+      <p class="home-tagline">
+        以 AI 驱动的新一代金融反欺诈平台<br>
+        多维度风险分析 · 实时威胁监控 · 智能决策辅助
+      </p>
+
+      <div class="home-actions">
+        <button class="home-btn-primary" id="homeBtn" onclick="enterApp()">进入系统</button>
+        <button class="home-btn-ghost" onclick="learnMore()">了解更多</button>
+      </div>
+
+      <div class="home-divider"></div>
+
+      <div class="home-stats">
+        <div class="home-stat">
+          <span class="home-stat-num">99.7<span class="home-stat-unit">%</span></span>
+          <span class="home-stat-label">检测准确率</span>
+        </div>
+        <div class="home-stat">
+          <span class="home-stat-num">12<span class="home-stat-unit"> 类</span></span>
+          <span class="home-stat-label">欺诈类型覆盖</span>
+        </div>
+        <div class="home-stat">
+          <span class="home-stat-num">&lt;0.3<span class="home-stat-unit">s</span></span>
+          <span class="home-stat-label">实时分析响应</span>
+        </div>
+      </div>
+
+      <div class="home-footer">
+        <span>Powered by DeepSeek AI</span>
+        <span class="home-footer-dot">·</span>
+        <span>v3.7</span>
+      </div>
+    </div>
+  </div>
+
   <!-- ============================================================ -->
   <!-- 顶部导航 -->
   <!-- ============================================================ -->

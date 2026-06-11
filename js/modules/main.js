@@ -2,6 +2,38 @@
  * main.js — 初始化入口 & 全局快捷键
  */
 
+// ============================================================
+// 首页入口 — 简洁淡出过渡（~0.6s）
+// ============================================================
+function enterApp() {
+  var btn = document.getElementById('homeBtn');
+  var overlay = document.getElementById('homeOverlay');
+
+  if (btn.disabled) return;
+  btn.disabled = true;
+
+  // 淡出覆盖层
+  overlay.classList.add('leaving');
+
+  // 动画结束后隐藏
+  setTimeout(function () {
+    overlay.style.display = 'none';
+  }, 600);
+}
+
+function learnMore() {
+  enterApp();
+}
+
+// 首页回车触发
+document.addEventListener('keydown', function (e) {
+  var overlay = document.getElementById('homeOverlay');
+  if (overlay && overlay.style.display !== 'none' && !overlay.classList.contains('leaving') && e.key === 'Enter') {
+    e.preventDefault();
+    enterApp();
+  }
+});
+
 document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('textInput').addEventListener('input', updateCharCount);
   updateCharCount();
