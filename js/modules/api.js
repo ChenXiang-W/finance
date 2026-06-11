@@ -1,5 +1,14 @@
 /**
  * api.js — 后端通信层
+ *
+ * 封装与 FastAPI 后端的 HTTP 通信：
+ *   apiPost(path, data)  — POST JSON 请求
+ *   apiGet(path)         — GET 请求
+ *   apiDelete(path)      — DELETE 请求
+ *   checkApiStatus()     — 轮询 /api/health，更新导航栏状态指示灯
+ *
+ * 所有请求自动拼接 API_BASE（默认 http://localhost:8000）
+ * 非 2xx 响应统一抛出 Error
  */
 
 function apiPost(path, data) {

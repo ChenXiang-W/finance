@@ -3,79 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>金融欺诈智能检测系统</title>
-  <!-- 字体：优先用国内镜像，Google Fonts 作为备用 -->
+  <title>金融欺诈智能检测系统 — 仪表盘</title>
+  <!-- 字体：Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <!-- ECharts 图表库 -->
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
+  <!-- CSS 模块 -->
   <link rel="stylesheet" href="css/reset.css">
   <link rel="stylesheet" href="css/layout.css">
-  <link rel="stylesheet" href="css/home.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <link rel="stylesheet" href="css/utilities.css">
 </head>
 <body>
-  <!-- ============================================================ -->
-  <!-- 登录覆盖层 -->
-  <!-- ============================================================ -->
-  <div class="home-overlay" id="homeOverlay">
-    <div class="home-card" id="homeCard">
-      <div class="home-logo">
-        <div class="logo-hex">
-          <svg width="44" height="48" viewBox="0 0 44 48" fill="none">
-            <polygon points="22,2 40,12 40,34 22,44 4,34 4,12" stroke="currentColor" stroke-width="1.2" fill="none"/>
-            <line x1="22" y1="2" x2="22" y2="44" stroke="currentColor" stroke-width="0.6" opacity="0.3"/>
-            <line x1="4" y1="23" x2="40" y2="23" stroke="currentColor" stroke-width="0.6" opacity="0.3"/>
-            <circle cx="22" cy="23" r="4" fill="currentColor" opacity="0.8"/>
-          </svg>
-        </div>
-        <h1>金融欺诈智能检测系统</h1>
-        <div class="home-subtitle">AI-Powered Financial Fraud Intelligence</div>
-      </div>
-
-      <p class="home-tagline">
-        以 AI 驱动的新一代金融反欺诈平台<br>
-        多维度风险分析 · 实时威胁监控 · 智能决策辅助
-      </p>
-
-      <div class="home-actions">
-        <button class="home-btn-primary" id="homeBtn" onclick="enterApp()">进入系统</button>
-        <button class="home-btn-ghost" onclick="learnMore()">了解更多</button>
-      </div>
-
-      <div class="home-divider"></div>
-
-      <div class="home-stats">
-        <div class="home-stat">
-          <span class="home-stat-num">99.7<span class="home-stat-unit">%</span></span>
-          <span class="home-stat-label">检测准确率</span>
-        </div>
-        <div class="home-stat">
-          <span class="home-stat-num">12<span class="home-stat-unit"> 类</span></span>
-          <span class="home-stat-label">欺诈类型覆盖</span>
-        </div>
-        <div class="home-stat">
-          <span class="home-stat-num">&lt;0.3<span class="home-stat-unit">s</span></span>
-          <span class="home-stat-label">实时分析响应</span>
-        </div>
-      </div>
-
-      <div class="home-footer">
-        <span>Powered by DeepSeek AI</span>
-        <span class="home-footer-dot">·</span>
-        <span>v3.7</span>
-      </div>
-    </div>
-  </div>
 
   <!-- ============================================================ -->
-  <!-- 顶部导航 -->
+  <!-- 顶部导航栏                                                    -->
   <!-- ============================================================ -->
   <nav class="navbar">
-    <a href="/" class="navbar-brand">
+    <a href="home.html" class="navbar-brand">
       <div class="logo-icon">🛡</div>
       <span>金融欺诈智能检测系统</span>
     </a>
@@ -91,12 +40,8 @@
   </nav>
 
   <!-- ============================================================ -->
-  <!-- 主容器：侧边栏 + 主区域 -->
+  <!-- 威胁滚动播报                                                  -->
   <!-- ============================================================ -->
-
-  <!-- ========== HUD 状态条 ========== -->
-
-  <!-- ========== 威胁滚动播报 ========== -->
   <div class="threat-ticker">
     <div class="ticker-label">⚠ ALERT</div>
     <div class="ticker-track" id="tickerTrack">
@@ -108,6 +53,7 @@
       <span>■ 伪基站活动半径扩展至二线城市</span>
       <span>■ 冒充公检法话术模板更新至 v4.2</span>
       <span>■ 虚拟货币洗钱通道新增 2 条</span>
+      <!-- 副本用于无缝滚动 -->
       <span>■ 新型冒充京东客服诈骗活跃度+12%</span>
       <span>■ 东南亚杀猪盘服务器集群新上线 3 个节点</span>
       <span>■ AI 深度伪造语音诈骗案例增长 47%</span>
@@ -119,7 +65,9 @@
     </div>
   </div>
 
-  <!-- ========== HUD 状态条 ========== -->
+  <!-- ============================================================ -->
+  <!-- HUD 状态条                                                    -->
+  <!-- ============================================================ -->
   <div class="hud-strip" id="hudStrip">
     <div class="hud-item">
       <span class="hud-label">SYS.ONLINE</span>
@@ -144,11 +92,14 @@
     <div class="hud-clock" id="hudClock">00:00:00</div>
   </div>
 
+  <!-- ============================================================ -->
+  <!-- 主容器：侧边栏 + 主区域                                        -->
+  <!-- ============================================================ -->
   <div class="app-container">
 
     <!-- ========== 左侧可伸缩侧边栏 ========== -->
     <aside class="sidebar" id="sidebar">
-      <!-- 折叠态：图标按钮 -->
+      <!-- 折叠态图标列 -->
       <div class="sidebar-icons" id="sidebarIcons">
         <button class="sidebar-icon-btn active" data-tab="history" onclick="expandSidebar('history')" title="检测历史">
           <span>💬</span>
@@ -164,7 +115,7 @@
         </button>
       </div>
 
-      <!-- 展开态：完整面板 -->
+      <!-- 展开态面板 -->
       <div class="sidebar-panel" id="sidebarPanel">
         <div class="sidebar-panel-header">
           <span id="sidebarPanelTitle">检测历史</span>
@@ -173,16 +124,14 @@
           </button>
         </div>
 
-        <!-- 标签导航 -->
         <div class="sidebar-tabs">
           <button class="sidebar-tab active" data-tab="history" onclick="switchSidebarTab('history')">💬 历史</button>
           <button class="sidebar-tab" data-tab="stats" onclick="switchSidebarTab('stats')">📈 统计</button>
           <button class="sidebar-tab" data-tab="settings" onclick="switchSidebarTab('settings')">⚙ 设置</button>
         </div>
 
-        <!-- 标签内容 -->
         <div class="sidebar-content">
-          <!-- 历史 -->
+          <!-- 检测历史 -->
           <div class="sidebar-tab-content active" id="sidebar-history">
             <div class="sidebar-toolbar">
               <input type="text" class="history-search" id="historySearch" placeholder="搜索历史…" oninput="filterHistory()">
@@ -194,7 +143,7 @@
             </div>
           </div>
 
-          <!-- 统计 -->
+          <!-- 统计概览 -->
           <div class="sidebar-tab-content" id="sidebar-stats">
             <div class="sidebar-stat-card">
               <div class="sidebar-stat-num" id="totalDetections">0</div>
@@ -215,23 +164,20 @@
             <div class="wordcloud-container" id="wordcloudChart"></div>
           </div>
 
-          <!-- 设置 -->
+          <!-- 系统设置 -->
           <div class="sidebar-tab-content" id="sidebar-settings">
             <div class="settings-field">
               <label>DeepSeek API Key</label>
-              <input type="password" class="settings-input" id="apiKeyInput"
-                placeholder="sk-xxxxxxxxxxxxxxxx">
+              <input type="password" class="settings-input" id="apiKeyInput" placeholder="sk-xxxxxxxxxxxxxxxx">
               <span class="settings-hint">驱动金融反欺诈智能体的深度分析</span>
             </div>
             <div class="settings-field">
               <label>API 地址</label>
-              <input type="text" class="settings-input" id="apiUrlInput"
-                value="https://api.deepseek.com">
+              <input type="text" class="settings-input" id="apiUrlInput" value="https://api.deepseek.com">
             </div>
             <div class="settings-field">
               <label>模型</label>
-              <input type="text" class="settings-input" id="modelInput"
-                value="deepseek-chat">
+              <input type="text" class="settings-input" id="modelInput" value="deepseek-chat">
             </div>
             <button class="btn btn-primary btn-sm" onclick="saveSettings()" style="margin-top:4px;">💾 保存设置</button>
             <span class="settings-saved" id="settingsSaved" style="display:none;">✓ 已保存</span>
@@ -243,7 +189,7 @@
     <!-- ========== 主区域 ========== -->
     <main class="main-area">
 
-      <!-- 第一区：输入面板 -->
+      <!-- 输入面板 -->
       <section class="input-section">
         <div class="section-header">
           <div class="section-title">
@@ -275,14 +221,12 @@
           <button class="quick-action-btn" onclick="showShortcuts()"><span class="qa-dot" style="background:var(--text-dim);"></span> 快捷键</button>
         </div>
 
-        <!-- URL 扫描行 -->
         <div class="url-scan-row" id="urlScanRow" style="display:none;">
           <input type="text" class="url-input" id="urlInput" placeholder="粘贴 URL 链接，自动抓取并分析…">
           <button class="btn btn-outline btn-sm" onclick="scanUrl()">🔗 扫描</button>
           <button class="btn btn-outline btn-sm" onclick="hideUrlInput()">✕</button>
         </div>
 
-        <!-- 批量模式 -->
         <div class="batch-row" id="batchRow" style="display:none;">
           <div class="batch-info">
             <span>📋 批量模式：每行一条文本</span>
@@ -292,7 +236,6 @@
           <button class="btn btn-outline btn-sm" onclick="toggleBatchMode()">✕ 退出</button>
         </div>
 
-        <!-- 威胁态势地图 -->
         <div class="threat-map-row" id="threatMapRow">
           <div class="threat-map-header">
             <span>🌐 全球威胁态势</span>
@@ -301,30 +244,21 @@
           <div class="threat-map-container" id="threatMapChart"></div>
         </div>
 
-        <textarea
-          class="text-input-area"
-          id="textInput"
-          placeholder="请粘贴短信、聊天记录、邮件或广告文案，智能体将自动识别欺诈风险并进行多维度深度分析…"
-        ></textarea>
+        <textarea class="text-input-area" id="textInput"
+          placeholder="请粘贴短信、聊天记录、邮件或广告文案，智能体将自动识别欺诈风险并进行多维度深度分析…"></textarea>
 
         <div class="input-actions">
-          <div class="input-stats">
-            <span id="charCount">0</span> / 10000 字符
-          </div>
+          <div class="input-stats"><span id="charCount">0</span> / 10000 字符</div>
           <div class="input-buttons">
-            <button class="btn btn-outline btn-sm" onclick="clearInput()">
-              <span>🗑</span> 清空
-            </button>
-            <button class="btn btn-primary" id="detectBtn" onclick="detectText()">
-              <span>🔍</span> 开始检测
-            </button>
+            <button class="btn btn-outline btn-sm" onclick="clearInput()"><span>🗑</span> 清空</button>
+            <button class="btn btn-primary" id="detectBtn" onclick="detectText()"><span>🔍</span> 开始检测</button>
           </div>
         </div>
       </section>
 
-      <!-- 第二区：双栏核心 -->
+      <!-- 双栏核心 -->
       <section class="core-section">
-        <!-- 左栏：检测报告 + 图表 -->
+        <!-- 左栏：检测报告 -->
         <div class="panel panel-results" id="resultsPanel">
           <div class="panel-header">
             <div class="panel-title">
@@ -338,53 +272,37 @@
           </div>
 
           <div class="panel-body" id="resultArea">
-            <!-- 空状态 — 迷你仪表盘 -->
+            <!-- 空状态 -->
             <div class="empty-state" id="resultEmpty">
               <div class="empty-icon">🔍</div>
               <div class="empty-title">系统待命中</div>
               <div class="empty-desc">输入文本并点击「开始检测」启动分析</div>
               <div class="mini-stats">
-                <div class="mini-stat">
-                  <div class="mini-stat-val" id="miniTodayDetections">—</div>
-                  <div class="mini-stat-lbl">今日检测</div>
-                </div>
-                <div class="mini-stat">
-                  <div class="mini-stat-val" id="miniAvgRisk">—</div>
-                  <div class="mini-stat-lbl">平均风险</div>
-                </div>
-                <div class="mini-stat">
-                  <div class="mini-stat-val" id="miniHighRisk">—</div>
-                  <div class="mini-stat-lbl">高危告警</div>
-                </div>
+                <div class="mini-stat"><div class="mini-stat-val" id="miniTodayDetections">—</div><div class="mini-stat-lbl">今日检测</div></div>
+                <div class="mini-stat"><div class="mini-stat-val" id="miniAvgRisk">—</div><div class="mini-stat-lbl">平均风险</div></div>
+                <div class="mini-stat"><div class="mini-stat-val" id="miniHighRisk">—</div><div class="mini-stat-lbl">高危告警</div></div>
               </div>
             </div>
-
-            <!-- 加载 -->
+            <!-- 加载态 -->
             <div class="loading-state" id="loadingOverlay">
               <canvas class="waveform-canvas" id="waveformCanvas" width="260" height="64"></canvas>
               <canvas class="dna-canvas" id="dnaCanvas" width="180" height="180" style="display:none;"></canvas>
               <button class="btn btn-outline btn-xs" onclick="toggleLoadingAnim()" style="margin-top:6px;font-size:10px;">🔄 切换动画</button>
               <div class="loading-text">AI 分析中<span class="loading-dots"></span></div>
             </div>
-
             <!-- 结果内容 -->
             <div id="resultContent" style="display:none;">
-              <!-- 风险仪表盘 + 评分 -->
               <div class="gauge-row" id="gaugeRow"></div>
-              <!-- 风险指标条 -->
               <div class="risk-indicator" id="riskIndicator"></div>
-              <!-- 分类饼图 + 雷达图 -->
               <div class="charts-row" id="chartsRow"></div>
-              <!-- 风险因子 -->
               <div class="analysis-section" id="riskFactorsSection"></div>
-              <!-- 诊断与建议 -->
               <div class="analysis-section" id="summarySection"></div>
               <div class="analysis-section" id="suggestionsSection"></div>
             </div>
           </div>
         </div>
 
-        <!-- 右栏：AI 智能体对话 -->
+        <!-- 右栏：AI 智能体 -->
         <div class="panel panel-agent" id="agentPanel">
           <div class="panel-header">
             <div class="panel-title">
@@ -393,7 +311,6 @@
             </div>
             <span class="agent-badge">DeepSeek AI</span>
           </div>
-
           <div class="panel-body agent-body">
             <div class="agent-messages" id="agentMessages">
               <div class="agent-msg agent-msg-system">
@@ -413,38 +330,25 @@
                 </div>
               </div>
             </div>
-
             <div class="agent-input-row">
-              <textarea
-                class="agent-input"
-                id="agentInput"
-                placeholder="向智能体追问更多细节…"
-                rows="1"
-                aria-label="向智能体输入追问内容"
-                onkeydown="handleAgentKeydown(event)"
-              ></textarea>
-              <button class="btn btn-primary btn-sm" id="agentSendBtn"
-                onclick="sendAgentMessage()" aria-label="发送消息">
-                <span>➤</span>
-              </button>
+              <textarea class="agent-input" id="agentInput" placeholder="向智能体追问更多细节…" rows="1"
+                onkeydown="handleAgentKeydown(event)"></textarea>
+              <button class="btn btn-primary btn-sm" id="agentSendBtn" onclick="sendAgentMessage()"><span>➤</span></button>
             </div>
           </div>
         </div>
       </section>
-
     </main>
   </div>
 
-  <!-- Toast -->
+  <!-- ============================================================ -->
+  <!-- 全局 UI 组件                                                  -->
+  <!-- ============================================================ -->
   <div id="toast"></div>
-
-  <!-- 数据粒子背景 -->
   <canvas id="particleCanvas"></canvas>
-
-  <!-- 扫描线 -->
   <div class="scan-line"></div>
 
-  <!-- 文件拖拽覆盖层 -->
+  <!-- 文件拖拽 -->
   <div class="drop-overlay" id="dropOverlay">
     <div class="drop-icon">📂</div>
     <div class="drop-text">释放文件以导入文本</div>
@@ -472,6 +376,9 @@
     </div>
   </div>
 
+  <!-- ============================================================ -->
+  <!-- JS 模块                                                       -->
+  <!-- ============================================================ -->
   <script src="js/modules/config.js"></script>
   <script src="js/modules/utils.js"></script>
   <script src="js/modules/api.js"></script>

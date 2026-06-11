@@ -1,39 +1,16 @@
 /**
- * main.js — 初始化入口 & 全局快捷键
+ * main.js — 应用初始化入口 & 全局快捷键
+ *
+ * 职责：
+ *   1. DOM 就绪后初始化：绑定事件、加载历史、更新统计
+ *   2. 全局快捷键注册（Ctrl+Enter 检测、F11 全屏等）
+ *
+ * 依赖：config.js / utils.js / api.js / detect.js / sidebar.js / agent.js / features.js
  */
 
 // ============================================================
-// 首页入口 — 简洁淡出过渡（~0.6s）
+// 应用初始化 — DOM 就绪后执行
 // ============================================================
-function enterApp() {
-  var btn = document.getElementById('homeBtn');
-  var overlay = document.getElementById('homeOverlay');
-
-  if (btn.disabled) return;
-  btn.disabled = true;
-
-  // 淡出覆盖层
-  overlay.classList.add('leaving');
-
-  // 动画结束后隐藏
-  setTimeout(function () {
-    overlay.style.display = 'none';
-  }, 600);
-}
-
-function learnMore() {
-  enterApp();
-}
-
-// 首页回车触发
-document.addEventListener('keydown', function (e) {
-  var overlay = document.getElementById('homeOverlay');
-  if (overlay && overlay.style.display !== 'none' && !overlay.classList.contains('leaving') && e.key === 'Enter') {
-    e.preventDefault();
-    enterApp();
-  }
-});
-
 document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('textInput').addEventListener('input', updateCharCount);
   updateCharCount();

@@ -1,5 +1,13 @@
 /**
  * agent.js — AI 智能体对话引擎
+ *
+ * 职责：
+ *   callDeepSeekAPI()    — 调用 DeepSeek Chat Completions API
+ *   sendAgentMessage()   — 用户发送消息 → 追加到对话 → 调用 API → 渲染回复
+ *   appendAgentMessage() — 将消息渲染到智能体面板
+ *   resetAgentContext()  — 重置对话上下文（仅保留 system prompt）
+ *
+ * 对话历史存储在 agentMessages 数组中，支持多轮追问
  */
 
 var agentMessages = [];

@@ -1,1 +1,4 @@
 .reasonix/
+__pycache__/
+*.pyc
+*.db
