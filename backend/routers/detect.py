@@ -70,6 +70,40 @@ def call_deepseek(text: str) -> dict:
     return {"error": "解析失败"}
 
 
+# ---- 全球威胁情报（首页地图数据） ----
+@router.get("/threat-feed")
+def threat_feed():
+    """返回实时威胁节点 + 情报流数据，供首页世界地图渲染"""
+    return {
+        "nodes": [
+            {"id": 1, "name": "东南亚", "lat": 13.7, "lng": 100.5, "level": "critical", "desc": "杀猪盘服务器集群新增 3 节点", "count": 1283},
+            {"id": 2, "name": "东欧",   "lat": 52.0, "lng": 30.0,  "level": "high",     "desc": "虚拟货币洗钱通道",         "count": 647},
+            {"id": 3, "name": "东亚",   "lat": 35.0, "lng": 120.0, "level": "high",     "desc": "冒充公检法话术 v4.2",      "count": 892},
+            {"id": 4, "name": "北美",   "lat": 40.0, "lng": -100.0,"level": "high",     "desc": "AI 深度伪造语音诈骗 +47%",  "count": 531},
+            {"id": 5, "name": "南美",   "lat": -10.0,"lng": -55.0, "level": "medium",   "desc": "虚假投资 App 黑产活跃",      "count": 312},
+            {"id": 6, "name": "西欧",   "lat": 50.0, "lng": 5.0,   "level": "medium",   "desc": "钓鱼邮件攻击激增",           "count": 278},
+            {"id": 7, "name": "中东",   "lat": 30.0, "lng": 45.0,  "level": "low",      "desc": "征信修复骗局关联账户",       "count": 104},
+            {"id": 8, "name": "非洲",   "lat": 0.0,   "lng": 25.0,  "level": "low",      "desc": "伪基站活动范围扩展",          "count": 67},
+        ],
+        "feeds": [
+            {"time": "14:32:07", "loc": "东南亚", "desc": "新杀猪盘服务器集群上线 3 节点", "level": "critical"},
+            {"time": "14:28:51", "loc": "东欧",   "desc": "虚拟货币洗钱通道新增 2 条",     "level": "high"},
+            {"time": "14:15:33", "loc": "北美",   "desc": "AI 深度伪造语音诈骗增长 47%",  "level": "high"},
+            {"time": "14:02:19", "loc": "东亚",   "desc": "冒充公检法话术模板更新至 v4.2","level": "medium"},
+            {"time": "13:47:55", "loc": "南美",   "desc": "虚假投资 App 在黑产论坛低价甩卖","level": "medium"},
+            {"time": "13:21:13", "loc": "西欧",   "desc": "征信修复骗局关联账户 +283",     "level": "medium"},
+
+            {"time": "12:58:40", "loc": "中东",   "desc": "伪基站活动半径扩展至二线城市",  "level": "low"},
+        ],
+        "stats": {
+            "total_nodes": 1024,
+            "active_threats": 47,
+            "today_alerts": 283,
+            "coverage_regions": 8,
+        }
+    }
+
+
 @router.post("/detect", response_model=DetectResponse)
 def detect(req: DetectRequest):
     t0 = time.time()
