@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>金盾智眼 — 金融欺诈智能检测系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+  <link rel="stylesheet" href="css/reset.css">
+  <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+
+  <div class="home-page">
+
+    <!-- ====== 左侧：世界地图 + 威胁情报 ====== -->
+    <section class="home-globe">
+      <!-- 顶部标题栏 -->
+      <div class="globe-header">
+        <div>
+          <span class="globe-title">🌐 全球威胁态势监控</span>
+          <span class="globe-subtitle">Global Threat Intelligence</span>
+        </div>
+        <div class="globe-badges">
+
+          <span class="globe-badge live">● 实时监控中</span>
+          <span class="globe-badge nodes" id="badgeNodes">1024 节点</span>
+        </div>
+      </div>
+
+      <!-- 地图 -->
+      <div class="globe-container" id="globeChart"></div>
+
+      <!-- 图例 + 统计条 -->
+      <div class="globe-info-bar">
+        <div class="globe-legend">
+          <span class="legend-item"><i class="ld critical"></i> 极高风险</span>
+          <span class="legend-item"><i class="ld high"></i> 高风险</span>
+          <span class="legend-item"><i class="ld med"></i> 中风险</span>
+          <span class="legend-item"><i class="ld low"></i> 低风险</span>
+        </div>
+        <div class="globe-metrics">
+          <span>活跃威胁 <b id="metricThreats">47</b></span>
+          <span>今日告警 <b id="metricAlerts">283</b></span>
+          <span>覆盖区域 <b id="metricRegions">8</b></span>
+        </div>
+      </div>
+
+      <!-- 实时情报流 -->
+      <div class="threat-feed-wrapper">
+        <div class="threat-feed-title">📡 实时威胁情报流</div>
+        <div class="threat-feed-scroll">
+          <div class="threat-feed" id="threatFeed"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 霓虹分割线 -->
+    <div class="home-divider-line"></div>
+
+    <!-- ====== 右侧：品牌卡片 ====== -->
+    <section class="home-card">
+      <!-- 卡片光柱背景 -->
+      <div class="card-light-beam"></div>
+      <!-- 四角几何装饰 -->
+      <div class="card-corner tl"></div>
+      <div class="card-corner tr"></div>
+      <div class="card-corner bl"></div>
+      <div class="card-corner br"></div>
+      <div class="home-logo">
+        <div class="logo-hex">
+          <svg width="48" height="52" viewBox="0 0 44 48" fill="none">
+            <polygon points="22,2 40,12 40,34 22,44 4,34 4,12" stroke="currentColor" stroke-width="1.5" fill="none"/>
+            <circle cx="22" cy="23" r="5" fill="currentColor" opacity="0.9"/>
+          </svg>
+        </div>
+        <h1>金盾智眼</h1>
+        <div class="home-subtitle">AI-Powered Financial Fraud Intelligence</div>
+      </div>
+
+      <p class="home-tagline">
+        基于大语言模型的金融欺诈检测平台<br>
+        多维风险分析 · 实时威胁监控 · 智能决策
+      </p>
+
+      <div class="home-actions">
+        <a href="index.html" class="home-btn-primary">
+          进入系统
+          <svg width="16" height="16" viewBox="0 0 16 16"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+        </a>
+        <a href="admin.html" class="home-btn-ghost">管理后台</a>
+      </div>
+
+      <div class="home-divider"></div>
+
+      <div class="home-stats">
+        <div class="home-stat">
+          <span class="home-stat-num"><span id="statAccuracy">0</span><span class="home-stat-unit">%</span></span>
+          <span class="home-stat-label">检测准确率</span>
+        </div>
+        <div class="home-stat">
+          <span class="home-stat-num"><span id="statCoverage">0</span><span class="home-stat-unit"> 类</span></span>
+          <span class="home-stat-label">欺诈类型覆盖</span>
+        </div>
+        <div class="home-stat">
+          <span class="home-stat-num">&lt;<span id="statLatency">0</span><span class="home-stat-unit">s</span></span>
+          <span class="home-stat-label">实时响应</span>
+        </div>
+      </div>
+
+      <div class="home-footer">
+        <span>Powered by DeepSeek AI</span>
+        <span class="home-footer-dot">·</span>
+        <span>v3.7</span>
+      </div>
+    </section>
+
+  </div>
+
+  <canvas id="bgParticles"></canvas>
+  <script src="js/home.js"></script>
+</body>
+</html>
