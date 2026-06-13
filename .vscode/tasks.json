@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "Live Preview",
+			"workspacePath": "c:\\Users\\23879\\Desktop\\作业\\project\\financial-fraud-detector\\frontend",
+			"problemMatcher": [],
+			"label": "Live Preview: 运行服务器",
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			}
+		}
+	]
+}

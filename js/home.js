@@ -5,7 +5,8 @@
 (function () {
   'use strict';
 
-  var API_URL = 'http://localhost:8000/api/threat-feed';
+  // 自动适配本机/局域网访问（用当前页面 hostname，端口固定 8000）
+  var API_URL = window.location.protocol + '//' + window.location.hostname + ':8000/api/threat-feed';
 
   var LEVEL = {
     critical: { fill: '#ff2244', glow: 'rgba(255,34,68,0.8)', name: '极高风险' },

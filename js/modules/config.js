@@ -1,7 +1,8 @@
 /**
  * config.js — 全局配置 & 常量
  */
-var API_BASE = 'http://localhost:8000';
+// 自动适配本机/局域网访问
+var API_BASE = window.location.protocol + '//' + window.location.hostname + ':8000';
 var sessionId = getOrCreateSessionId();
 var currentResult = null;
 
