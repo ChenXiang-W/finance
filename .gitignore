@@ -2,3 +2,29 @@
 __pycache__/
 *.pyc
 *.db
+
+# ========== Python ==========
+*.pyo
+*.pyd
+.Python
+.env
+venv/
+.env/
+.venv/
+
+# ========== 训练输出 ==========
+training/output/
+
+# ========== 日志 ==========
+*.log
+
+# ========== 编辑器 ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ========== 操作系统 ==========
+.DS_Store
+Thumbs.db
