@@ -116,7 +116,7 @@
 
 /* ECharts 容器 */
 .globe-container {
-  min-height: 500px;
+  min-height: 550px;
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid rgba(0,240,255,0.08);
