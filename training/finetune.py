@@ -27,9 +27,9 @@ from peft import LoraConfig, get_peft_model, TaskType
 # 配置
 # ============================================================
 BASE_MODEL  = "Qwen/Qwen2.5-7B-Instruct"  # 基座模型
-DATA_PATH   = "dataset/fraud_cases.jsonl"
-OUTPUT_DIR  = "output/fraud-lora-adapter"
-MERGE_DIR   = "output/fraud-lora-merged"
+DATA_PATH   = "training/dataset/fraud_cases.jsonl"
+OUTPUT_DIR  = "training/output/fraud-lora-adapter"
+MERGE_DIR   = "training/output/fraud-lora-merged"
 
 # LoRA 参数
 LORA_R  = 16
@@ -37,10 +37,10 @@ LORA_ALPHA = 32
 LORA_DROPOUT = 0.05
 
 # 训练参数
-BATCH_SIZE   = 2
-GRAD_ACCUM   = 4
+BATCH_SIZE   = 1
+GRAD_ACCUM   = 8
 LEARNING_RATE = 2e-4
-NUM_EPOCHS   = 3
+NUM_EPOCHS   = 5
 MAX_LENGTH   = 1024
 
 
