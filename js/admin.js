@@ -77,6 +77,11 @@ new Vue({
         { type: '正常',       count: 0, pct: 0, color: '#00ff66' },
       ],
 
+      // ---- API Key 管理 ----
+      apiKeys: [],
+      apiKeyDlg: false, editingApiKeyId: null,
+      apiKeyForm: { api_key: '' },
+
       // ---- 系统监控/日志 ----
       logs: [], logTotal: 0, logPage: 1, logLoading: false,
     };
@@ -174,7 +179,7 @@ new Vue({
         if (this.cases.length === 0) this.loadCases();
         else this.updateDatasetStats();
       }
-      if (v === 'system') { this.loadSysInfo(); if (this.logs.length === 0) this.loadLogs(); }
+      if (v === 'system') { this.loadSysInfo(); if (this.logs.length === 0) this.loadLogs(); if (this.apiKeys.length === 0) this.loadApiKeys(); }
     },
 
     /** 从已加载的案例数据计算各欺诈类型的数量占比 */
@@ -374,6 +379,25 @@ new Vue({
           if (e !== 'cancel') { s.ftMsg = e.message || '启动失败'; s.ftOk = false; }
         })
         .finally(function () { s.ftLoading = false; });
+    },
+
+    // ---- API Key 管理 ----
+    loadApiKeys: function () {
+      var s = this;
+      this.api('GET', '/api/admin/api-keys')
+        .then(function (d) { s.apiKeys = d.items; })
+        .catch(function () {});
+    },
+    editApiKey: function (row) {
+      this.editingApiKeyId = row.id;
+      this.apiKeyForm.api_key = row.api_key || '';
+      this.apiKeyDlg = true;
+    },
+    saveApiKey: function () {
+      var s = this;
+      this.api('PUT', '/api/admin/api-keys/' + this.editingApiKeyId, this.apiKeyForm)
+        .then(function () { s.apiKeyDlg = false; s.loadApiKeys(); s.$message.success('已更新'); })
+        .catch(function (e) { s.$message.error(e.message); });
     },
 
     // ---- 系统监控/日志 ----

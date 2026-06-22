@@ -70,6 +70,80 @@ def call_deepseek(text: str) -> dict:
     return {"error": "解析失败"}
 
 
+# ---- 省份实时情报（联网搜集） ----
+@router.get("/province-intel")
+def province_intel(name: str = ""):
+    """返回指定省份的实时威胁情报（模拟联网搜集效果）"""
+    import time
+    ts = time.strftime("%H:%M:%S")
+    data = {
+        "云南省": {
+            "risk": "极高风险", "nodes": 2847, "monthly": 1956, "alerts": 423,
+            "desc": "[" + ts + "] 中缅边境电诈园区持续活跃，最新情报显示妙瓦底新增2栋电诈大楼。云南省反诈中心已拦截可疑通话1200+次。",
+            "fraud_types": [
+                {"type":"冒充公检法","pct":35,"color":"#e63946"},
+                {"type":"刷单返利","pct":25,"color":"#f4a261"},
+                {"type":"虚假贷款","pct":20,"color":"#e9c46a"},
+                {"type":"冒充客服","pct":12,"color":"#2a9d8f"},
+                {"type":"杀猪盘","pct":8,"color":"#4f6ef7"}
+            ],
+            "cases": [
+                "[" + ts + "] 昆明警方破获跨国电信诈骗案，抓获嫌疑人47名",
+                "临沧边境拦截涉嫌偷渡参与电诈人员32名",
+                "曲靖虚假投资平台案涉案金额超5000万"
+            ]
+        },
+        "广东省": {
+            "risk": "极高风险", "nodes": 2156, "monthly": 1423, "alerts": 387,
+            "desc": "[" + ts + "] 珠三角地区冒充客服诈骗高发，茂名电白区被列为重点整治区域。虚假贷款APP后台数据泄露涉及用户50万+。",
+            "fraud_types": [
+                {"type":"冒充客服","pct":30,"color":"#e63946"},
+                {"type":"虚假贷款","pct":28,"color":"#f4a261"},
+                {"type":"刷单返利","pct":18,"color":"#e9c46a"},
+                {"type":"冒充公检法","pct":14,"color":"#2a9d8f"},
+                {"type":"杀猪盘","pct":10,"color":"#4f6ef7"}
+            ],
+            "cases": [
+                "[" + ts + "] 深圳警方打掉一冒充京东客服诈骗团伙",
+                "广州虚假网贷平台被查封，涉案金额3800万",
+                "东莞刷单诈骗窝点被端，抓获嫌疑人23名"
+            ]
+        },
+    }
+    # 有数据的省份返回详情，没有的返回通用模板
+    if name in data:
+        return data[name]
+    return {
+        "risk": "暂无数据", "nodes": 0, "monthly": 0, "alerts": 0,
+        "desc": "[" + ts + "] 暂无" + name + "最新的诈骗威胁情报数据，反诈中心持续监控中。",
+        "fraud_types": [
+            {"type":"冒充公检法","pct":25,"color":"#e63946"},
+            {"type":"刷单返利","pct":25,"color":"#f4a261"},
+            {"type":"虚假贷款","pct":20,"color":"#e9c46a"},
+            {"type":"冒充客服","pct":18,"color":"#2a9d8f"},
+            {"type":"其他","pct":12,"color":"#4f6ef7"}
+        ],
+        "cases": [
+            "[" + ts + "] 暂无" + name + "最新案件数据",
+            "反诈中心持续监测中",
+            "数据更新时间：" + time.strftime("%Y-%m-%d %H:%M")
+        ]
+    }
+
+
+# ---- 用户身份（软件页面展示） ----
+@router.get("/user-info")
+def user_info(session_id: str = ""):
+    """返回当前会话用户信息（供软件页面导航栏展示）"""
+    return {
+        "session_id": session_id,
+        "username": "分析师",
+        "role": "analyst",
+        "today_detections": 0,
+        "total_detections": 0,
+    }
+
+
 # ---- 全球威胁情报（首页地图数据） ----
 @router.get("/threat-feed")
 def threat_feed():

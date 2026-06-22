@@ -354,6 +354,24 @@
               <p>{{ sysInfo.database ? sysInfo.database.type : '--' }}</p>
             </div>
           </div>
+          <div class="glass-card" style="margin-bottom:14px;">
+            <h4 style="margin-bottom:12px;">🔑 API Key 管理</h4>
+            <el-table :data="apiKeys" stripe size="small" class="dark-table">
+              <el-table-column prop="id" label="ID" width="50"></el-table-column>
+              <el-table-column prop="username" label="用户" width="100"></el-table-column>
+              <el-table-column prop="api_key" label="API Key" min-width="200">
+                <template slot-scope="s">
+                  <span v-if="s.row.api_key" style="font-family:monospace;font-size:11px;">{{ s.row.api_key.substring(0,16) }}...</span>
+                  <span v-else style="color:var(--text-dim)">未设置</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="80">
+                <template slot-scope="s">
+                  <el-button type="text" size="mini" @click="editApiKey(s.row)">编辑</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
           <div class="glass-card">
             <h4 style="margin-bottom:12px;">📋 检测日志</h4>
             <el-table :data="logs" stripe v-loading="logLoading" size="small" class="dark-table">
@@ -378,6 +396,22 @@
 
       </main>
     </div><!-- /admin-shell -->
+
+    <!-- API Key 编辑弹窗 -->
+    <el-dialog title="编辑 API Key" :visible.sync="apiKeyDlg" width="480px">
+      <el-form :model="apiKeyForm" label-width="80px" size="small">
+        <el-form-item label="API Key">
+          <el-input v-model="apiKeyForm.api_key" placeholder="sk-xxxxxxxx"></el-input>
+        </el-form-item>
+        <p style="color:var(--text-dim);font-size:12px;margin-top:4px;">
+          系统使用自己的垂直模型，API Key 仅供管理员配置，普通用户无需提供。
+        </p>
+      </el-form>
+      <span slot="footer">
+        <el-button @click="apiKeyDlg = false">取消</el-button>
+        <el-button type="primary" @click="saveApiKey">保存</el-button>
+      </span>
+    </el-dialog>
   </div>
 </div>
 

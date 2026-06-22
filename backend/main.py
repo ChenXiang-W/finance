@@ -53,6 +53,57 @@ def health():
     }
 
 
+# ---- 公开注册/登录（非管理员） ----
+from models.database import SessionLocal, User
+from passlib.context import CryptContext
+from jose import jwt
+import config as cfg
+from datetime import datetime, timedelta
+
+pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+@app.post("/api/auth/register")
+def public_register(username: str, password: str, email: str = ""):
+    db = SessionLocal()
+    try:
+        if db.query(User).filter(User.username == username).first():
+            return {"ok": False, "error": "用户名已存在"}
+        user = User(
+            username=username,
+            password=pwd.hash(password),
+            email=email,
+            role="analyst",
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        token = jwt.encode(
+            {"sub": str(user.id), "exp": datetime.utcnow() + timedelta(seconds=cfg.TOKEN_EXPIRE)},
+            cfg.SECRET_KEY, algorithm=cfg.ALGORITHM
+        )
+        return {"ok": True, "token": token, "username": user.username, "id": user.id}
+    finally:
+        db.close()
+
+@app.post("/api/auth/login")
+def public_login(username: str, password: str):
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.username == username).first()
+        if not user or not pwd.verify(password, user.password):
+            return {"ok": False, "error": "用户名或密码错误"}
+        # 更新登录信息
+        user.last_login = datetime.utcnow()
+        user.login_count = (user.login_count or 0) + 1
+        db.commit()
+        token = jwt.encode(
+            {"sub": str(user.id), "exp": datetime.utcnow() + timedelta(seconds=cfg.TOKEN_EXPIRE)},
+            cfg.SECRET_KEY, algorithm=cfg.ALGORITHM
+        )
+        return {"ok": True, "token": token, "username": user.username, "id": user.id, "role": user.role}
+    finally:
+        db.close()
+
 # ---- 注册子路由 ----
 from routers import detect, admin, auth
 app.include_router(detect.router)

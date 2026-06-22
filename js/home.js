@@ -1,24 +1,34 @@
 /**
- * home.js — 全球威胁态势大屏（2D 极致打磨版）
- * 威胁连线 + 热力辐射 + 脉冲节点 + 实时情报流 + 赛博朋克粒子
+ * home.js — 中国标准省份地图 + 点击详情侧边栏 + 威胁情报流
  */
 (function () {
   'use strict';
 
-  // 自动适配本机/局域网访问（用当前页面 hostname，端口固定 8000）
   var API_URL = window.location.protocol + '//' + window.location.hostname + ':8000/api/threat-feed';
 
+  // 赛博朋克暗色省份配色
+  var PROVINCE_COLORS = [
+    '#0f1a2e','#121d33','#0e1828','#111c30','#10192c',
+    '#0f1a2e','#131f35','#0e1828','#111c30','#10192c',
+    '#0f1a2e','#121d33','#131f35','#0e1828','#111c30',
+    '#10192c','#0f1a2e','#121d33','#0e1828','#111c30',
+    '#10192c','#0f1a2e','#131f35','#121d33','#0e1828',
+    '#111c30','#10192c','#0f1a2e','#121d33','#131f35',
+    '#0e1828','#111c30','#10192c','#0f1a2e','#121d33'
+  ];
+
   var LEVEL = {
-    critical: { fill: '#ff2244', glow: 'rgba(255,34,68,0.8)', name: '极高风险' },
-    high:     { fill: '#ff6b35', glow: 'rgba(255,107,53,0.7)', name: '高风险' },
-    medium:   { fill: '#fdcb6e', glow: 'rgba(253,203,110,0.6)', name: '中风险' },
-    low:      { fill: '#4f6ef7', glow: 'rgba(79,110,247,0.5)', name: '低风险' },
+    critical: { fill: '#e63946', name: '极高风险' },
+    high:     { fill: '#f4a261', name: '高风险' },
+    medium:   { fill: '#e9c46a', name: '中风险' },
+    low:      { fill: '#2a9d8f', name: '低风险' },
   };
 
   var gChart = null;
+  var gProvinceData = {};  // 省份名 → 详细数据
 
   // ============================================================
-  // 地图渲染
+  // 中国地图渲染（标准配色 + 点击省份）
   // ============================================================
   function renderMap(data) {
     var dom = document.getElementById('globeChart');
@@ -28,71 +38,23 @@
     var chart = echarts.init(dom);
     chart.showLoading({ text: '加载地图…', color: '#4f6ef7', maskColor: 'rgba(5,8,15,0.8)' });
 
-    fetch('css/world.json')
+    // 构建省份→风险数据映射
+    gProvinceData = {};
+    data.nodes.forEach(function (n) { gProvinceData[n.name] = n; });
+
+    fetch('css/china.json')
       .then(function (r) { return r.json(); })
       .then(function (geo) {
         chart.hideLoading();
-        echarts.registerMap('world', geo);
+        echarts.registerMap('china', geo);
 
-        // ---- 节点散点 ----
-        var nodes = data.nodes.map(function (n) {
-          var c = LEVEL[n.level] || LEVEL.low;
-          return {
-            name: n.name, value: [n.lng, n.lat, n.count],
-            desc: n.desc, level: n.level,
-            symbolSize: Math.max(8, Math.min(22, Math.sqrt(n.count) * 0.7)),
-            itemStyle: { color: c.fill, shadowBlur: 18, shadowColor: c.glow, shadowOffsetY: 2 },
-            label: { show: true, formatter: '{b}', color: '#fff', fontSize: 9, distance: 6, fontFamily: '"Noto Sans SC",sans-serif', textShadowBlur: 4, textShadowColor: '#000' },
-            emphasis: { scale: 2, label: { fontSize: 13, fontWeight: 'bold' } },
-          };
-        });
-
-        // ---- 脉冲涟漪（仅高危） ----
-        var ripples = data.nodes
-          .filter(function (n) { return n.level === 'critical' || n.level === 'high'; })
-          .map(function (n) {
-            var c = LEVEL[n.level] || LEVEL.high;
-            return { name: n.name, value: [n.lng, n.lat, n.count], itemStyle: { color: c.fill } };
-          });
-
-        // ---- 威胁连线（极高→高→中 之间） ----
-        var lines = [];
-        var dangerNodes = data.nodes.filter(function (n) { return n.level === 'critical' || n.level === 'high'; });
-        for (var i = 0; i < dangerNodes.length; i++) {
-          for (var j = i + 1; j < dangerNodes.length; j++) {
-            var dist = Math.sqrt(
-              Math.pow(dangerNodes[i].lng - dangerNodes[j].lng, 2) +
-              Math.pow(dangerNodes[i].lat - dangerNodes[j].lat, 2)
-            );
-            if (dist < 120) {
-              lines.push({
-                coords: [[dangerNodes[i].lng, dangerNodes[i].lat], [dangerNodes[j].lng, dangerNodes[j].lat]],
-                lineStyle: { color: 'rgba(255,34,68,0.2)', width: 0.8, curveness: 0.2 },
-              });
-            }
-          }
-        }
-
-        // ---- 热力辐射圈（极高节点周围） ----
-        var heatZones = data.nodes
-          .filter(function (n) { return n.level === 'critical'; })
-          .map(function (n) {
+        // 每个省份按标准配色着色
+        var regions = geo.features
+          .filter(function (f) { return f.properties.name; })
+          .map(function (f, i) {
             return {
-              name: n.name,
-              value: [n.lng, n.lat, Math.min(80, Math.sqrt(n.count) * 2)],
-              itemStyle: {
-                color: {
-                  type: 'radial',
-                  x: 0.5, y: 0.5, r: 0.5,
-                  colorStops: [
-                    { offset: 0, color: 'rgba(255,34,68,0.08)' },
-                    { offset: 0.5, color: 'rgba(255,34,68,0.03)' },
-                    { offset: 1, color: 'rgba(255,34,68,0)' },
-                  ],
-                },
-              },
-              silent: true,
-              z: 0,
+              name: f.properties.name,
+              itemStyle: { areaColor: PROVINCE_COLORS[i % PROVINCE_COLORS.length] },
             };
           });
 
@@ -100,51 +62,41 @@
           backgroundColor: 'transparent',
           tooltip: {
             trigger: 'item',
-            backgroundColor: 'rgba(5,8,15,0.96)',
-            borderColor: 'rgba(0,240,255,0.35)',
-            padding: [14, 18],
+            backgroundColor: 'rgba(5,8,15,0.95)',
+            borderColor: 'rgba(0,240,255,0.3)',
+            padding: [12, 16],
             textStyle: { color: '#dce6f0', fontSize: 13, fontFamily: '"Noto Sans SC",sans-serif' },
             formatter: function (p) {
-              if (!p.data || !p.data.desc) return '';
-              var c = LEVEL[p.data.level] || LEVEL.low;
-              return '<div style="font-size:16px;font-weight:700;margin-bottom:8px;color:#fff;">' + p.data.name + '</div>' +
-                '<div style="margin-bottom:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + c.fill + ';margin-right:8px;box-shadow:0 0 8px ' + c.glow + ';"></span>' +
-                '等级：<b style="color:' + c.fill + ';">' + c.name + '</b></div>' +
-                '<div style="color:rgba(255,255,255,0.6);margin-bottom:4px;">' + p.data.desc + '</div>' +
-                '<div style="color:rgba(255,255,255,0.35);font-size:11px;">监控节点：<b style="color:#fff;">' + (p.data.value ? p.data.value[2] : '--') + '</b></div>';
+              var pd = gProvinceData[p.name];
+              if (pd) {
+                var lc = LEVEL[pd.level] || LEVEL.low;
+                return '<b style="color:#fff;">' + p.name + '</b><br/>风险：<span style="color:' + lc.fill + '">' + lc.name + '</span><br/>节点：' + pd.count + '<br/><i style="color:var(--neon-cyan);">点击查看实时详情</i>';
+              }
+              return '<b>' + p.name + '</b>';
             },
           },
           geo: {
-            map: 'world', roam: true, zoom: 1.18, center: [25, 20], aspectScale: 0.75,
-            itemStyle: {
-              areaColor: '#0a1020',
-              borderColor: 'rgba(0,240,255,0.18)',
-              borderWidth: 0.6,
-              shadowBlur: 20, shadowColor: 'rgba(0,0,0,0.6)', shadowOffsetY: 4,
-            },
+            map: 'china', roam: true, zoom: 1.2, center: [104, 36], aspectScale: 0.85,
+            label: { show: true, color: 'rgba(255,255,255,0.4)', fontSize: 10, fontFamily: '"Noto Sans SC",sans-serif' },
+            regions: regions,
+            itemStyle: { borderColor: 'rgba(0,240,255,0.15)', borderWidth: 0.8, shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.5)' },
             emphasis: {
-              itemStyle: { areaColor: '#111d38', borderColor: 'rgba(0,240,255,0.45)', borderWidth: 1.2 },
-              label: { show: false },
+              label: { fontSize: 14, fontWeight: 'bold', color: '#fff' },
+              itemStyle: { areaColor: '#1a3050', borderColor: 'rgba(0,240,255,0.5)', borderWidth: 2, shadowBlur: 20, shadowColor: 'rgba(0,240,255,0.15)' },
             },
           },
-          series: [
-            // 热力辐射
-            { type: 'scatter', coordinateSystem: 'geo', data: heatZones, symbolSize: function (v) { return v[2]; }, silent: true, z: 0 },
-            // 连线
-            { type: 'lines', coordinateSystem: 'geo', data: lines, silent: true, z: 1,
-              effect: { show: true, period: 5, trailLength: 0.3, symbol: 'circle', symbolSize: 2, color: 'rgba(0,240,255,0.5)' },
-            },
-            // 散点
-            { type: 'scatter', coordinateSystem: 'geo', data: nodes, z: 2, emphasis: { scale: 2 } },
-            // 脉冲
-            { type: 'effectScatter', coordinateSystem: 'geo', data: ripples, symbolSize: 6, z: 3,
-              rippleEffect: { brushType: 'stroke', scale: 4, period: 2.5 },
-              showEffectOn: 'render',
-            },
-          ],
+          series: [],
         });
 
         chart.getDom().style.backgroundColor = 'transparent';
+
+        // 点击省份 → 显示侧边栏详情
+        chart.on('click', function (p) {
+          if (p.componentType === 'geo' && p.name) {
+            showProvince(p.name);
+          }
+        });
+
         window.addEventListener('resize', function () { chart.resize(); });
         gChart = chart;
       })
@@ -152,7 +104,65 @@
   }
 
   // ============================================================
-  // 指标更新 + 情报流
+  // 省份详情侧边栏
+  // ============================================================
+  function showProvince(name) {
+    var sidebar = document.getElementById('provinceSidebar');
+    if (!sidebar) return;
+
+    // 显示加载状态
+    sidebar.style.display = 'block';
+    sidebar.classList.add('open');
+    document.getElementById('psName').textContent = name;
+    document.getElementById('psDesc').textContent = '正在获取实时情报...';
+
+    // 调用后端实时情报接口
+    fetch(API_URL.replace('/api/threat-feed', '/api/province-intel?name=' + encodeURIComponent(name)))
+      .then(function (r) { return r.json(); })
+      .then(function (info) {
+        document.getElementById('psName').textContent = name;
+        var badge = document.getElementById('psBadge');
+        badge.textContent = info.risk || '暂无数据';
+        var riskColors = { '极高风险':'#e63946', '高风险':'#f4a261', '中风险':'#e9c46a', '低风险':'#2a9d8f' };
+        badge.style.background = riskColors[info.risk] || '#666';
+
+        document.getElementById('psStats').innerHTML =
+          '<div class="ps-stat"><b>' + (info.nodes||0) + '</b><span>活跃节点</span></div>' +
+          '<div class="ps-stat"><b>' + (info.monthly||0) + '</b><span>本月案件</span></div>' +
+          '<div class="ps-stat"><b>' + (info.alerts||0) + '</b><span>高危预警</span></div>';
+
+        document.getElementById('psDesc').textContent = info.desc || '';
+
+        var barsHtml = '';
+        (info.fraud_types || []).forEach(function (f) {
+          barsHtml += '<div class="ps-bar-row"><span class="ps-bar-label">' + f.type + '</span>' +
+            '<div class="ps-bar-track"><div class="ps-bar-fill" style="width:' + f.pct + '%;background:' + f.color + '"></div></div>' +
+            '<span class="ps-bar-pct">' + f.pct + '%</span></div>';
+        });
+        document.getElementById('psBars').innerHTML = barsHtml;
+
+        var casesHtml = '';
+        (info.cases || []).forEach(function (c) {
+          casesHtml += '<div class="ps-case">' + c + '</div>';
+        });
+        document.getElementById('psCases').innerHTML = casesHtml;
+      })
+      .catch(function () {
+        document.getElementById('psDesc').textContent = '情报获取失败，请检查后端服务';
+      });
+  }
+
+  // 关闭侧边栏（全局函数，供HTML onclick调用）
+  window._closeProvince = function () {
+    var sidebar = document.getElementById('provinceSidebar');
+    if (sidebar) {
+      sidebar.classList.remove('open');
+      setTimeout(function () { sidebar.style.display = 'none'; }, 300);
+    }
+  };
+
+  // ============================================================
+  // 指标 + 情报流
   // ============================================================
   function updateInfoBar(data) {
     var el = document.getElementById('badgeNodes'); if (el && data.stats) el.textContent = data.stats.total_nodes + ' 节点';
@@ -173,7 +183,7 @@
   }
 
   // ============================================================
-  // 粒子
+  // 粒子背景
   // ============================================================
   function initParticles() {
     var canvas = document.getElementById('bgParticles'); if (!canvas) return;

@@ -74,7 +74,7 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[str] = None
     role: Optional[str] = None
-    api_key: Optional[str] = None
+    # 注意：api_key 由系统管理员统一配置，普通用户不需要
 
 class UserOut(BaseModel):
     id: int

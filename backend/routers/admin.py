@@ -204,6 +204,79 @@ def get_system_info(admin=Depends(get_current_admin)):
     }
 
 
+# ---- 用户 Profile + API Key ----
+
+@router.get("/profile")
+def get_profile(db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    """返回当前登录管理员的个人信息"""
+    return {
+        "id": admin.id,
+        "username": admin.username,
+        "role": admin.role,
+        "created_at": admin.created_at.isoformat() if admin.created_at else None,
+    }
+
+
+@router.get("/api-keys")
+def list_api_keys(db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    """列出所有用户的 API Key（管理员可管理）"""
+    users = db.query(User).all()
+    return {
+        "items": [
+            {
+                "id": u.id,
+                "username": u.username,
+                "api_key": u.api_key or "",
+                "role": u.role,
+            }
+            for u in users
+        ]
+    }
+
+
+@router.put("/api-keys/{user_id}")
+def update_api_key(user_id: int, data: dict, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    """为用户设置 API Key"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    user.api_key = data.get("api_key", "")
+    db.commit()
+    return {"ok": True, "message": "API Key 已更新"}
+
+
+# ---- 用户偏好 ----
+
+@router.put("/preferences")
+def update_preferences(data: dict, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    """更新当前用户的偏好设置"""
+    admin.preferences = data
+    db.commit()
+    return {"ok": True}
+
+
+# ---- 案例导出 ----
+
+@router.get("/cases-export")
+def export_cases(db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    """导出训练数据为 JSONL 格式"""
+    cases = db.query(FraudCase).filter(FraudCase.is_active == True).all()
+    lines = []
+    for c in cases:
+        import json
+        lines.append(json.dumps({
+            "instruction": "你是金融反欺诈分析专家。分析以下文本，输出JSON格式结果。",
+            "input": c.text,
+            "output": json.dumps({
+                "risk_score": c.risk_score,
+                "risk_level": c.risk_level,
+                "fraud_type": c.fraud_type,
+                "analysis": c.analysis or "",
+            }, ensure_ascii=False),
+        }, ensure_ascii=False))
+    return {"count": len(lines), "data": "\n".join(lines)}
+
+
 # ---- 检测日志 ----
 
 @router.get("/logs", response_model=dict)

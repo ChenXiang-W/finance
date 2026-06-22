@@ -25,7 +25,74 @@
   border-radius:6px;
   box-shadow:0 0 12px rgba(0,240,255,0.4),0 0 24px rgba(255,0,170,0.2);
 }
-.navbar-actions{display:flex;align-items:center;gap:6px}
+.navbar-actions{display:flex;align-items:center;gap:8px}
+
+/* 用户身份徽章 */
+.user-badge {
+  display:flex;align-items:center;gap:6px;
+  padding:4px 12px 4px 6px;
+  background:rgba(0,240,255,0.05);
+  border:1px solid rgba(0,240,255,0.1);
+  border-radius:20px;
+  margin-right:4px;
+}
+.user-avatar {
+  width:24px;height:24px;border-radius:50%;
+  background:rgba(79,110,247,0.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;
+}
+.user-name {
+  font-size:12px;color:var(--text-secondary);
+  font-family:'Noto Sans SC',sans-serif;
+  cursor:pointer;
+}
+
+/* 登录弹窗 */
+.auth-modal {
+  position:fixed;inset:0;z-index:500;
+  display:flex;align-items:center;justify-content:center;
+}
+.auth-overlay {
+  position:absolute;inset:0;
+  background:rgba(0,0,0,0.7);
+  backdrop-filter:blur(4px);
+}
+.auth-card {
+  position:relative;z-index:1;
+  width:380px;padding:36px 32px;
+  background:rgba(10,14,26,0.95);
+  border:1px solid rgba(0,240,255,0.12);
+  border-radius:14px;
+  box-shadow:0 0 60px rgba(0,0,0,0.6);
+  display:flex;flex-direction:column;gap:14px;
+}
+.auth-card h3 {
+  font-family:'Orbitron',sans-serif;
+  font-size:20px;font-weight:700;color:#e8ecf1;
+  text-align:center;margin-bottom:4px;
+}
+.auth-input {
+  padding:12px 14px;
+  background:rgba(0,12,24,0.6);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:6px;color:#fff;font-size:14px;
+  outline:none;font-family:'Noto Sans SC',sans-serif;
+}
+.auth-input:focus { border-color:var(--neon-cyan); }
+.auth-submit {
+  padding:12px;border:none;border-radius:6px;
+  background:linear-gradient(135deg,#4f6ef7,#3b54d4);
+  color:#fff;font-size:15px;font-weight:600;
+  cursor:pointer;font-family:'Noto Sans SC',sans-serif;
+}
+.auth-submit:hover { background:linear-gradient(135deg,#3b54d4,#4f6ef7); }
+.auth-switch {
+  text-align:center;font-size:12px;color:var(--text-dim);
+}
+.auth-switch a {
+  color:var(--neon-cyan);cursor:pointer;margin-left:4px;
+}
 
 .nav-icon-btn{
   width:30px;height:30px;

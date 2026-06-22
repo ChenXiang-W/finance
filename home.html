@@ -16,12 +16,27 @@
   <div class="home-page">
 
     <!-- ====== 左侧：世界地图 + 威胁情报 ====== -->
+    <!-- 省份详情侧边栏 -->
+    <aside class="province-sidebar" id="provinceSidebar" style="display:none;">
+      <div class="ps-header">
+        <button class="ps-back" onclick="window._closeProvince()">← 返回</button>
+        <h3 id="psName"></h3>
+        <span class="ps-badge" id="psBadge"></span>
+      </div>
+      <div class="ps-stats" id="psStats"></div>
+      <div class="ps-desc" id="psDesc"></div>
+      <h4>欺诈类型分布</h4>
+      <div class="ps-bars" id="psBars"></div>
+      <h4>近期案件</h4>
+      <div class="ps-cases" id="psCases"></div>
+    </aside>
+
     <section class="home-globe">
       <!-- 顶部标题栏 -->
       <div class="globe-header">
         <div>
-          <span class="globe-title">🌐 全球威胁态势监控</span>
-          <span class="globe-subtitle">Global Threat Intelligence</span>
+          <span class="globe-title">🇨🇳 全国诈骗态势监控</span>
+          <span class="globe-subtitle">China Fraud Threat Intelligence</span>
         </div>
         <div class="globe-badges">
           <span class="globe-badge live">● 实时监控中</span>

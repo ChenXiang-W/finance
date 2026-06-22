@@ -41,6 +41,7 @@ class User(Base):
     email       = Column(String(100))
     role        = Column(String(20), default="analyst")
     api_key     = Column(String(64))
+    preferences = Column(JSON, default=dict)   # 用户偏好设置
     last_login  = Column(DateTime)
     login_count = Column(Integer, default=0)
     created_at  = Column(DateTime, default=datetime.utcnow)
