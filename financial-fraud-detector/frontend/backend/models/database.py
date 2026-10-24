@@ -30,6 +30,7 @@ class Admin(Base):
     username   = Column(String(50), unique=True, nullable=False)
     password   = Column(String(255), nullable=False)
     role       = Column(String(20), default="editor")
+    preferences = Column(JSON, default=dict)   # 管理员偏好（JSON格式）
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -119,6 +120,9 @@ def _migrate_columns():
     expected = {
         "users": {
             "password": "VARCHAR(255)",
+            "preferences": "JSON",
+        },
+        "admins": {
             "preferences": "JSON",
         },
         "model_versions": {

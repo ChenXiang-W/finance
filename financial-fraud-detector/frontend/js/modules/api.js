@@ -3,6 +3,13 @@
  */
 
 function _request(path, options) {
+  options = options || {};
+  // 本浏览器登录过管理后台时自动附带 token（部分接口如 /api/llm/config 已要求管理员权限）
+  var token = localStorage.getItem('admin_token');
+  if (token) {
+    options.headers = options.headers || {};
+    if (!options.headers['Authorization']) options.headers['Authorization'] = 'Bearer ' + token;
+  }
   return fetch(API_BASE + path, options).then(function (resp) {
     if (!resp.ok) {
       return resp.json().catch(function () { return { detail: resp.statusText }; })

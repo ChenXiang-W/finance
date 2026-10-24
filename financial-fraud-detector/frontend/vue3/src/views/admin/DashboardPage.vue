@@ -11,7 +11,7 @@ const loading = ref(true)
 onMounted(async () => {
   loading.value = true
   try {
-    const [s, l, m] = await Promise.allSettled([adminApi.stats(), adminApi.logs({ limit: 12 }), adminApi.modelInfo()])
+    const [s, l, m] = await Promise.allSettled([adminApi.stats(), adminApi.logs({ page: 1, page_size: 12 }), adminApi.modelInfo()])
     if (s.status === 'fulfilled') stats.value = s.value || {}
     if (l.status === 'fulfilled') logs.value = l.value?.items || l.value || []
     if (m.status === 'fulfilled') model.value = m.value || {}

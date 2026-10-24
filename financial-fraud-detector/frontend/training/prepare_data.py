@@ -68,13 +68,13 @@ def load_db_cases(db_path):
     if not os.path.exists(db_path):
         return []
     samples = []
+    conn = None
     try:
         conn = sqlite3.connect(db_path)
         rows = conn.execute(
             "SELECT text, fraud_type, risk_level, risk_score, analysis, is_active "
             "FROM fraud_cases WHERE is_active = 1"
         ).fetchall()
-        conn.close()
         for text, fraud_type, risk_level, risk_score, analysis, _ in rows:
             if not text or not text.strip():
                 continue
@@ -102,6 +102,9 @@ def load_db_cases(db_path):
             })
     except Exception as e:
         print(f"  [警告] 读取数据库案例失败: {e}")
+    finally:
+        if conn is not None:
+            conn.close()
     return samples
 
 

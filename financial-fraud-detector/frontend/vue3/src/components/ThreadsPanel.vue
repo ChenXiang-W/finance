@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '../stores/app'
 import { useSessionStore } from '../stores/session'
@@ -34,8 +34,9 @@ const pinned = computed(() => {
   }
 })
 
-const online = ref(session.online)
-onMounted(() => { online.value = session.online })
+// 直接引用 store 字段保持响应式；之前用 ref 复制初始值，后端状态变化后状态灯不会更新
+const online = computed(() => session.online)
+onMounted(() => { if (session.online === null) session.checkHealth() })
 </script>
 
 <template>

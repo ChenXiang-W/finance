@@ -75,8 +75,9 @@ def predict(model, tokenizer, text, device):
     if device == "cuda":
         inputs = {k: v.cuda() for k, v in inputs.items()}
     with torch.no_grad():
-        outputs = model.generate(
-            **inputs, max_new_tokens=256, temperature=0.1, do_sample=True, top_p=0.9)
+        # 贪心解码，与线上推理（models/fraud_model.py 的 do_sample=False）保持一致，
+        # 否则评测指标不可复现且与真实线上行为对不上
+        outputs = model.generate(**inputs, max_new_tokens=256, do_sample=False)
     response = tokenizer.decode(outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
     return parse_output(response)
 

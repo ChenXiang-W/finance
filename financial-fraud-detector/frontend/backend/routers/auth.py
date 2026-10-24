@@ -19,20 +19,41 @@ security = HTTPBearer()
 
 def create_token(data: dict) -> str:
     to_encode = data.copy()
+    # 管理员 token 必须带 typ 声明；普通用户 token（main.py 签发）没有它，
+    # 借此防止 users 表和 admins 表的自增 id 重合导致的越权
+    to_encode.setdefault("typ", "admin")
     to_encode["exp"] = datetime.utcnow() + timedelta(seconds=config.TOKEN_EXPIRE)
     return jwt.encode(to_encode, config.SECRET_KEY, algorithm=config.ALGORITHM)
+
+
+class _DevAdmin:
+    """数据库不可用时的开发模式管理员（token sub="0"）"""
+
+    id = 0
+    username = "admin"
+    role = "super"
 
 
 def get_current_admin(
     creds: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
-) -> Admin:
+):
     try:
         payload = jwt.decode(creds.credentials, config.SECRET_KEY, algorithms=[config.ALGORITHM])
         admin_id = payload.get("sub")
+        if payload.get("typ") != "admin":
+            # 普通用户 token / 不带 typ 的旧 token 一律拒绝
+            raise HTTPException(status_code=403, detail="需要管理员权限")
     except JWTError:
         raise HTTPException(status_code=401, detail="无效的认证令牌")
-    admin = db.query(Admin).filter(Admin.id == int(admin_id)).first()
+    # 开发模式回退（MySQL 不可用时签发的 sub="0"）
+    if admin_id == "0":
+        return _DevAdmin()
+    try:
+        admin_pk = int(admin_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="无效的认证令牌")
+    admin = db.query(Admin).filter(Admin.id == admin_pk).first()
     if not admin:
         raise HTTPException(status_code=401, detail="管理员不存在")
     return admin

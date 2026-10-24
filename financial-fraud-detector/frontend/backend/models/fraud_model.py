@@ -10,14 +10,88 @@ backend/models/fraud_model.py — 微调模型加载 + 推理
   model = FraudModel("training/output/fraud-lora-merged")
   result = model.predict("待检测的文本")
 """
+import contextlib
 import json
 import os
 import re
+import threading
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 SYSTEM_PROMPT = "你是金融反欺诈分析专家。分析以下文本，输出JSON格式结果。"
+
+# ============================================================
+# 共享基座缓存：检测（基座+LoRA）与对话（纯基座）共用同一份权重。
+# 之前两条链路各加载一份（fp16≈6.2G + 4bit≈2.2G），8G 显存装不下，
+# transformers 把放不下的层卸载到内存/硬盘，整机卡死。
+# 现在全程只驻留一份 4-bit 基座（约 2.5G），对话时临时摘掉 LoRA。
+# ============================================================
+_BASE_CACHE = {}          # base_path -> (tokenizer, base_model)
+_BASE_LOCK = threading.Lock()
+_ACTIVE = None            # 当前已加载的 FraudModel 实例（供对话复用）
+
+
+def get_shared_base(base_path: str):
+    """加载（或复用）4-bit 量化的基座模型，检测与对话共享同一实例。
+
+    可用环境变量 FRAUD_MODEL_4BIT=false 关闭量化（回退 fp16）。
+    """
+    key = os.path.abspath(base_path)
+    with _BASE_LOCK:
+        if key in _BASE_CACHE:
+            return _BASE_CACHE[key]
+
+        from transformers import BitsAndBytesConfig
+        tok = AutoTokenizer.from_pretrained(base_path, trust_remote_code=True)
+        if tok.pad_token is None:
+            tok.pad_token = tok.eos_token
+
+        model = None
+        if os.getenv("FRAUD_MODEL_4BIT", "true").lower() != "false" and torch.cuda.is_available():
+            try:
+                bnb = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_use_double_quant=True,
+                )
+                model = AutoModelForCausalLM.from_pretrained(
+                    base_path, quantization_config=bnb,
+                    device_map="auto", trust_remote_code=True,
+                )
+                print(f"[共享基座] 4-bit 量化加载: {base_path}")
+            except Exception as e:
+                print(f"[共享基座] 4-bit 加载失败，回退 fp16: {e}")
+                model = None
+        if model is None:
+            kwargs = dict(trust_remote_code=True)
+            if torch.cuda.is_available():
+                kwargs.update(dtype=torch.float16, device_map="auto")
+            model = AutoModelForCausalLM.from_pretrained(base_path, **kwargs)
+            if not torch.cuda.is_available():
+                model = model.to("cpu")
+            print(f"[共享基座] 加载完成: {base_path}")
+
+        model.eval()
+        _BASE_CACHE[key] = (tok, model)
+        return _BASE_CACHE[key]
+
+
+def release_shared():
+    """释放共享基座与活跃实例引用（管理后台停用/切换模型时调用）"""
+    global _ACTIVE
+    _ACTIVE = None
+    _BASE_CACHE.clear()
+
+
+def set_active(model: "FraudModel"):
+    global _ACTIVE
+    _ACTIVE = model
+
+
+def get_active() -> "FraudModel | None":
+    return _ACTIVE
 
 # 模型可能输出自由格式 JSON，这里做一层兜底归一化，避免上游拿到 None
 KNOWN_TYPES = [
@@ -36,7 +110,7 @@ class FraudModel:
         adapter_cfg = os.path.join(model_path, "adapter_config.json")
         is_adapter = os.path.isfile(adapter_cfg)
 
-        # 适配器目录：tokenizer 在适配器目录里，模型权重需要基座
+        # 适配器目录：tokenizer 在适配器目录里，模型权重复用共享基座（4-bit，全局仅一份）
         if is_adapter:
             with open(adapter_cfg, "r", encoding="utf-8") as f:
                 cfg = json.load(f)
@@ -45,31 +119,54 @@ class FraudModel:
                 raise RuntimeError("LoRA 适配器缺少可用基座模型: %r" % base)
             print(f"[FraudModel] 加载 LoRA 适配器: {model_path} (基座={base}, device={self.device})")
             self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-            base_model = AutoModelForCausalLM.from_pretrained(
-                base,
-                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
-                device_map="auto" if self.device == "cuda" else None,
-                trust_remote_code=True,
-            )
+            if self.tokenizer.pad_token is None:
+                self.tokenizer.pad_token = self.tokenizer.eos_token
+            _, base_model = get_shared_base(base)
             from peft import PeftModel
             self.model = PeftModel.from_pretrained(base_model, model_path)
-            if self.device == "cpu":
-                self.model = self.model.to("cpu")
         else:
             print(f"[FraudModel] 加载模型: {model_path} (device={self.device})")
             self.tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
-            self.model = AutoModelForCausalLM.from_pretrained(
-                model_path,
-                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
-                device_map="auto" if self.device == "cuda" else None,
-                trust_remote_code=True,
-            )
-            if self.device == "cpu":
-                self.model = self.model.to(self.device)
+            if self.device == "cuda":
+                if os.getenv("FRAUD_MODEL_4BIT", "true").lower() != "false":
+                    try:
+                        from transformers import BitsAndBytesConfig
+                        bnb = BitsAndBytesConfig(
+                            load_in_4bit=True,
+                            bnb_4bit_compute_dtype=torch.float16,
+                            bnb_4bit_quant_type="nf4",
+                            bnb_4bit_use_double_quant=True,
+                        )
+                        self.model = AutoModelForCausalLM.from_pretrained(
+                            model_path, quantization_config=bnb,
+                            device_map="auto", trust_remote_code=True,
+                        )
+                    except Exception as e:
+                        print(f"[FraudModel] 4-bit 加载失败，回退 fp16: {e}")
+                        self.model = None
+                if self.model is None:
+                    self.model = AutoModelForCausalLM.from_pretrained(
+                        model_path, dtype=torch.float16,
+                        device_map="auto", trust_remote_code=True,
+                    )
+            else:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    merged_path, trust_remote_code=True,
+                ).to("cpu")
 
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model.eval()
+        set_active(self)
+
+    def disable_adapter_ctx(self):
+        """对话用的上下文：临时摘掉 LoRA 适配器，得到纯基座行为（不额外占显存）。
+
+        合并模型没有适配器可摘，返回空上下文（对话会带微调风格，属预期）。
+        """
+        if hasattr(self.model, "disable_adapter"):
+            return self.model.disable_adapter()
+        return contextlib.nullcontext()
 
     def predict(self, text: str) -> dict:
         prompt = f"<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n<|im_start|>user\n{text}<|im_end|>\n<|im_start|>assistant\n"
@@ -81,7 +178,6 @@ class FraudModel:
             outputs = self.model.generate(
                 **inputs,
                 max_new_tokens=200,        # 结果是短 JSON，512 太慢也更容易 OOM
-                temperature=0.1,
                 do_sample=False,           # 结构化输出用贪心，减少格式漂移
                 pad_token_id=self.tokenizer.pad_token_id,
             )

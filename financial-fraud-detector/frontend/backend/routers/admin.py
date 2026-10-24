@@ -8,9 +8,9 @@ from typing import Optional
 from models.database import get_db, FraudCase, User, DetectionLog
 from models.schemas import (
     FraudCaseCreate, FraudCaseUpdate, FraudCaseOut,
-    UserUpdate, UserOut, DashboardStats,
+    UserCreate, UserUpdate, UserOut, DashboardStats,
 )
-from routers.auth import get_current_admin
+from routers.auth import get_current_admin, pwd_ctx
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -94,12 +94,39 @@ def list_users(
     }
 
 
+@router.post("/users", response_model=UserOut)
+def create_user(req: UserCreate, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
+    """新增业务用户（Vue3 管理后台「用户管理 → 新增用户」）"""
+    username = req.username.strip()
+    if not username:
+        raise HTTPException(status_code=400, detail="用户名不能为空")
+    if not req.password:
+        raise HTTPException(status_code=400, detail="必须设置初始密码")
+    if db.query(User).filter(User.username == username).first():
+        raise HTTPException(status_code=400, detail="用户名已存在")
+    user = User(
+        username=username,
+        password=pwd_ctx.hash(req.password),
+        email=req.email,
+        role=req.role or "analyst",
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return UserOut.from_orm(user)
+
+
 @router.put("/users/{user_id}", response_model=UserOut)
 def update_user(user_id: int, req: UserUpdate, db: Session = Depends(get_db), admin=Depends(get_current_admin)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
-    for k, v in req.model_dump(exclude_unset=True).items():
+    data = req.model_dump(exclude_unset=True)
+    # 密码单独处理：入库前必须 bcrypt 哈希，绝不能明文 set 进去
+    plain_password = data.pop("password", None)
+    if plain_password:
+        user.password = pwd_ctx.hash(plain_password)
+    for k, v in data.items():
         setattr(user, k, v)
     db.commit()
     db.refresh(user)

@@ -14,6 +14,7 @@ from datetime import datetime
 from models.schemas import DetectRequest, DetectResponse
 from pydantic import BaseModel as _PydBase
 from models.database import get_db, DetectionLog
+from routers.auth import get_current_admin
 import config
 
 router = APIRouter(prefix="/api", tags=["detect"])
@@ -154,8 +155,8 @@ _runtime_llm = {"api_key": "", "base_url": "", "model": "deepseek-chat"}
 
 
 @router.get("/llm/config")
-def get_llm_config():
-    """返回当前 LLM 配置状态（不回显 API Key 明文，防泄露）"""
+def get_llm_config(admin=Depends(get_current_admin)):
+    """返回当前 LLM 配置状态（不回显 API Key 明文，防泄露；仅管理员可读）"""
     return {
         "ok": True,
         "base_url": _runtime_llm.get("base_url") or config.DEEPSEEK_BASE_URL,
@@ -165,11 +166,15 @@ def get_llm_config():
 
 
 @router.post("/llm/config")
-def set_llm_config(data: dict):
-    """前端保存的 DeepSeek 配置写入运行时，后端检测/智能体立即生效。
+def set_llm_config(data: dict, admin=Depends(get_current_admin)):
+    """管理员保存的 DeepSeek 配置写入运行时，后端检测/智能体立即生效。
+
+    必须携带管理员 token：该接口决定所有检测文本发往哪个服务器，
+    匿名可写等于允许任意外带用户提交的内容。
 
     安全约束：已配置过 API Key 后，单独修改 base_url 会被拒绝
     （防止攻击者把 base_url 指向自己从而窃取已有 Key）。
+    api_key 传空/缺省视为「不修改」，避免前端不回显 Key 时保存操作把 Key 清空。
     """
     has_existing_key = bool(_runtime_llm.get("api_key") or config.DEEPSEEK_API_KEY)
     incoming_key = str(data.get("api_key") or "").strip() if "api_key" in data else None
@@ -178,7 +183,8 @@ def set_llm_config(data: dict):
     if not incoming_key and new_base and new_base.rstrip("/") != (_runtime_llm.get("base_url") or config.DEEPSEEK_BASE_URL).rstrip("/") and has_existing_key:
         raise HTTPException(status_code=400, detail="修改 API 地址必须同时提供 API Key，防止密钥被窃取")
 
-    if incoming_key is not None:
+    # 空串 = 未填写 = 保持原 Key；只有非空才覆盖
+    if incoming_key:
         _runtime_llm["api_key"] = incoming_key
     if new_base:
         _runtime_llm["base_url"] = new_base
@@ -287,9 +293,19 @@ def reload_model_async(path=None):
 def unload_model():
     """卸载微调模型并释放显存（切回纯 DeepSeek 模式）"""
     global _fraud_model, _model_path_override, _model_load_error
+    global _chat_tok, _chat_mdl, _chat_no_adapter
     _fraud_model = None
     _model_path_override = None
     _model_load_error = None
+    # 对话链路复用的是共享基座，必须一并释放，否则显存不回收
+    _chat_tok = None
+    _chat_mdl = None
+    _chat_no_adapter = None
+    try:
+        from models import fraud_model as _fm
+        _fm.release_shared()
+    except Exception:
+        pass
     try:
         import gc
         import torch
@@ -688,13 +704,20 @@ def detect(req: DetectRequest, db: Session = Depends(get_db)):
         summary = "深度分析失败：" + str(llm_result.get("error", "未知错误"))
         risk_factors, suggestions = [], []
     else:
-        score = llm_result.get("risk_score") or (finetuned_result.get("risk_score") if finetuned_result else 0.0)
+        # 显式判断 None 而不是用 or：DeepSeek 判定 risk_score=0.0（正常）是合法值，
+        # 不能被当成「缺失」回退到本地模型的分数
+        llm_score = llm_result.get("risk_score") if llm_result else None
+        if llm_score is None:
+            llm_score = finetuned_result.get("risk_score") if finetuned_result else 0.0
+        score = llm_score
         level = llm_result.get("risk_level") or (finetuned_result.get("risk_level") if finetuned_result else "分析中")
         category = llm_result.get("fraud_category") or (finetuned_result.get("fraud_type") if finetuned_result else "分析中")
-        risk_factors = llm_result.get("risk_factors", [])
-        suggestions = llm_result.get("suggestions", [])
-        if not llm_result:
-            # 纯本地模式（无 DeepSeek）：用规则补齐，保证报告结构完整
+        risk_factors = llm_result.get("risk_factors", []) if (llm_result and not llm_failed) else []
+        suggestions = llm_result.get("suggestions", []) if (llm_result and not llm_failed) else []
+        if not llm_result or llm_failed:
+            # 纯本地模式 / DeepSeek 未配置或调用失败：用规则补齐六维与建议，
+            # 保证报告结构完整。之前只覆盖「完全没有引擎」的情况，
+            # DeepSeek 失败但本地模型有结果时六维会变成空的。
             if not risk_factors:
                 risk_factors = rule_dimensions(req.text)
             if not suggestions:
@@ -726,10 +749,11 @@ def detect(req: DetectRequest, db: Session = Depends(get_db)):
         llm_analysis=summary,
     )
     # 持久化：会话历史 + 全局检测日志（真实入库，管理后台统计可见）。
-    # 深度分析失败的结果不入库，避免污染统计与词云。
-    if not llm_failed or finetuned_result:
-        # 注意：llm_result 失败时是 {"error": ...} 也是真值，不能直接拿来判断用了哪个模型
-        if not llm_failed:
+    # 深度分析失败与「未分析」（没有任何可用引擎）的结果都不入库，避免污染统计与词云。
+    if not no_engine and (not llm_failed or finetuned_result):
+        # 只有真的调用了 DeepSeek 且成功，才记 deepseek；
+        # 纯本地推理记 finetuned，两者都没有（不会走到这里）才是 rule
+        if llm_result and not llm_failed:
             model_used = "deepseek"
         elif finetuned_result:
             model_used = "finetuned"
@@ -832,6 +856,7 @@ def rule_suggestions(fraud_type: str):
 _chat_lock = None
 _chat_tok = None
 _chat_mdl = None
+_chat_no_adapter = None   # 可调用对象：返回「摘掉 LoRA」的上下文；纯基座时为 None
 
 
 class ChatRequest(_PydBase):
@@ -841,42 +866,56 @@ class ChatRequest(_PydBase):
 
 
 def _load_chat_model():
-    """懒加载「纯基座」用于对话（不带 LoRA；与分类模型共存，共约 3-4GB 显存）"""
-    global _chat_tok, _chat_mdl, _chat_lock
+    """懒加载对话模型。
+
+    显存优化（8G 卡关键修复）：优先复用检测模型（FraudModel）已经加载的
+    同一个 4-bit 基座 —— 对话时用 disable_adapter() 临时摘掉 LoRA，
+    等价于纯基座模型，全程只驻留一份权重（约 2.5GB）。
+    之前对话会单独再加载一份基座（fp16 检测 6.2G + 对话 2.2G > 8G），
+    装不下的层被卸载到内存/硬盘，加载 177s/片、整机卡死。
+    """
+    global _chat_tok, _chat_mdl, _chat_lock, _chat_no_adapter
     import threading
     if _chat_lock is None:
         _chat_lock = threading.Lock()
     with _chat_lock:
         if _chat_mdl is not None:
-            return _chat_tok, _chat_mdl
-        from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-        import torch
+            return _chat_tok, _chat_mdl, _chat_no_adapter
+
+        from models import fraud_model as fm
+
+        # 1) 检测模型已在运行：直接复用它的模型与 tokenizer，零额外显存
+        active = fm.get_active()
+        if active is not None:
+            _chat_tok = active.tokenizer
+            _chat_mdl = active.model
+            _chat_no_adapter = active.disable_adapter_ctx
+            print("[对话] 复用检测模型的基座（不额外占显存）")
+            return _chat_tok, _chat_mdl, _chat_no_adapter
+
+        # 2) 检测模型还没加载过：解析基座路径，走共享缓存加载
+        #    （之后第一次检测会直接复用这份基座，不会再加载第二份）
         from config import BASE_MODEL_NAME
-        candidates = [
-            os.getenv("CHAT_MODEL_PATH", ""),
-            BASE_MODEL_NAME,
-            "C:/Users/23879/.cache/modelscope/Qwen2.5-3B-Instruct",
-        ]
+        candidates = [os.getenv("CHAT_MODEL_PATH", "")]
+        # 优先用当前微调适配器里记录的基座路径
+        try:
+            adapter_cfg_path = os.path.join(current_model_path() or "", "adapter_config.json")
+            if os.path.isfile(adapter_cfg_path):
+                import json as _json
+                with open(adapter_cfg_path, "r", encoding="utf-8") as f:
+                    candidates.append(_json.load(f).get("base_model_name_or_path") or "")
+        except Exception:
+            pass
+        candidates += [BASE_MODEL_NAME, "C:/Users/23879/.cache/modelscope/Qwen2.5-3B-Instruct"]
         path = next((p for p in candidates if p and os.path.isdir(p)), None)
         if not path:
             raise RuntimeError("找不到基座模型目录，请设置 CHAT_MODEL_PATH")
-        print(f"[对话] 加载基座模型: {path}")
-        tok = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
-        kwargs = dict(trust_remote_code=True, device_map="auto")
-        try:
-            kwargs["quantization_config"] = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch.float16,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_use_double_quant=True,
-            )
-        except Exception:
-            pass
-        mdl = AutoModelForCausalLM.from_pretrained(path, **kwargs)
-        mdl.eval()
+        print(f"[对话] 加载共享基座: {path}")
+        tok, mdl = fm.get_shared_base(path)
         _chat_tok, _chat_mdl = tok, mdl
+        _chat_no_adapter = None   # 纯基座实例，没有适配器可摘
         print("[对话] 基座模型已就绪")
-        return tok, mdl
+        return _chat_tok, _chat_mdl, _chat_no_adapter
 
 
 @router.post("/chat")
@@ -887,8 +926,9 @@ def chat(req: ChatRequest):
     if not msgs:
         raise HTTPException(status_code=400, detail="messages 不能为空")
     try:
+        import contextlib
         import torch
-        tok, mdl = _load_chat_model()
+        tok, mdl, no_adapter = _load_chat_model()
         norm = []
         for m in msgs:
             role = m.get("role") or "user"
@@ -909,7 +949,9 @@ def chat(req: ChatRequest):
             gen_kwargs.update(do_sample=True, temperature=temp, top_p=0.9)
         else:
             gen_kwargs.update(do_sample=False)
-        with torch.no_grad():
+        # 复用检测模型时临时摘掉 LoRA（对话用纯基座），不占额外显存
+        adapter_ctx = no_adapter() if no_adapter else contextlib.nullcontext()
+        with torch.no_grad(), adapter_ctx:
             out = mdl.generate(**inputs, **gen_kwargs)
         text = tok.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()
         return {

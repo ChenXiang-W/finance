@@ -42,8 +42,8 @@ function onInput(e) {
 }
 
 function submit() {
+  // 清空输入框的时机由 DetectView.submit 统一控制（busy/typing 时不清，避免丢字）
   emit('submit', props.text)
-  if (mode.value === 'agent') emit('update:text', '')
 }
 
 function fillExample() {
@@ -54,7 +54,9 @@ function fillExample() {
 }
 
 function onKeydown(e) {
-  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+  // Ctrl/Cmd+Enter 交给全局快捷键处理（DetectView），这里只响应裸 Enter，
+  // 否则同一个提交会触发两次
+  if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.isComposing) {
     e.preventDefault()
     submit()
   }

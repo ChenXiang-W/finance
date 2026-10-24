@@ -53,9 +53,15 @@
     },
     {
       "label": "启动全栈",
-      "dependsOrder": "sequence",
-      "dependsOn": ["准备: 清理端口 (8000/5173/3000)", "后端: uvicorn (8000)", "前端: vite (5173)"],
-      "problemMatcher": []
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy", "Bypass",
+        "-File", "${workspaceFolder}\\.vscode\\fullstack-task.ps1"
+      ],
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "close": true }
     },
     {
       "label": "安装前端依赖 (npm install)",

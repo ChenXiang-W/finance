@@ -36,9 +36,19 @@ const surfaceMeta = computed(() => {
 const welcomeRecent = computed(() => session.conversations.slice(-3).reverse())
 
 function submit(value) {
-  const v = value ?? text.value
+  const v = String(value ?? text.value ?? '').trim()
+  if (!v) return
+  // 追问模式：上一条还在生成时不接受提交（否则输入会被清掉丢失）
+  if (detect.mode === 'agent') {
+    if (detect.typing) return
+    detect.submit(v)
+    text.value = ''
+    return
+  }
+  if (detect.busy) return
   detect.submit(v)
-  if (detect.mode === 'agent') text.value = ''
+  // 检测/批量/URL 提交后清空输入框，刚分析过的文本不再留在框里
+  text.value = ''
 }
 
 function newDetect() {

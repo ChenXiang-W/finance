@@ -1,6 +1,10 @@
 """
 金融欺诈智能检测系统 - FastAPI 后端服务
 支持文本检测、风险分析、对话缓存、DeepSeek LLM 集成
+
+【已废弃】这套后端已被 frontend/backend/（带 SQLite 数据库与完整管理接口）取代，
+frontend/启动服务.py 与 启动_Vue3.py 启动的都是 frontend/backend/main.py。
+本目录不再维护，请勿用 uvicorn 直接启动本文件；仅作历史参考保留。
 """
 import os
 import sys

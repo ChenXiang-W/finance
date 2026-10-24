@@ -11,6 +11,7 @@ backend/main.py — FastAPI 应用入口
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from models.database import init_db
 import config
 import os
@@ -78,39 +79,48 @@ from datetime import datetime, timedelta
 
 pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
+class AuthBody(BaseModel):
+    """注册/登录请求体（不能用查询参数收密码，会进 URL 与访问日志）"""
+    username: str
+    password: str
+    email: str = ""
+
+
 @app.post("/api/auth/register")
-def public_register(username: str, password: str, email: str = ""):
+def public_register(req: AuthBody):
     db = SessionLocal()
     try:
-        if db.query(User).filter(User.username == username).first():
+        if db.query(User).filter(User.username == req.username).first():
             return {"ok": False, "error": "用户名已存在"}
         user = User(
-            username=username,
-            password=pwd.hash(password),
-            email=email,
+            username=req.username,
+            password=pwd.hash(req.password),
+            email=req.email,
             role="analyst",
         )
         db.add(user)
         db.commit()
         db.refresh(user)
+        # typ="user" 与管理员 token（typ="admin"）区分，防止跨表越权
         token = jwt.encode(
-            {"sub": str(user.id), "exp": datetime.utcnow() + timedelta(seconds=cfg.TOKEN_EXPIRE)},
+            {"sub": str(user.id), "typ": "user", "exp": datetime.utcnow() + timedelta(seconds=cfg.TOKEN_EXPIRE)},
             cfg.SECRET_KEY, algorithm=cfg.ALGORITHM
         )
-        return {"ok": True, "token": token, "username": user.username, "id": user.id}
+        return {"ok": True, "token": token, "username": user.username, "id": user.id, "role": user.role}
     finally:
         db.close()
 
 @app.post("/api/auth/login")
-def public_login(username: str, password: str):
+def public_login(req: AuthBody):
     db = SessionLocal()
     try:
-        user = db.query(User).filter(User.username == username).first()
+        user = db.query(User).filter(User.username == req.username).first()
         # 老数据可能没有 password 列值（迁移前注册的用户），给出明确提示而不是 500
         if not user or not user.password:
             return {"ok": False, "error": "用户名或密码错误"}
         try:
-            valid = pwd.verify(password, user.password)
+            valid = pwd.verify(req.password, user.password)
         except Exception:
             valid = False
         if not valid:
@@ -120,7 +130,7 @@ def public_login(username: str, password: str):
         user.login_count = (user.login_count or 0) + 1
         db.commit()
         token = jwt.encode(
-            {"sub": str(user.id), "exp": datetime.utcnow() + timedelta(seconds=cfg.TOKEN_EXPIRE)},
+            {"sub": str(user.id), "typ": "user", "exp": datetime.utcnow() + timedelta(seconds=cfg.TOKEN_EXPIRE)},
             cfg.SECRET_KEY, algorithm=cfg.ALGORITHM
         )
         return {"ok": True, "token": token, "username": user.username, "id": user.id, "role": user.role}

@@ -617,11 +617,20 @@ def import_cases(payload: dict = Body(default={}), db: Session = Depends(get_db)
             continue
         level = str(it.get("risk_level") or "medium")
         level_map = {"低风险": "low", "中风险": "medium", "高风险": "high", "极高风险": "critical"}
+        level = str(it.get("risk_level") or "medium")
+        level_map = {"低风险": "low", "中风险": "medium", "高风险": "high", "极高风险": "critical"}
+        # 显式 0 是合法分值（正常样本），只有缺省时才默认 0.5；非数字跳过该条而不是整个请求 500
+        raw_score = it.get("risk_score")
+        try:
+            risk_score = 0.5 if raw_score is None or raw_score == "" else float(raw_score)
+        except (TypeError, ValueError):
+            skipped += 1
+            continue
         db.add(FraudCase(
             text=text[:5000],
             fraud_type=str(it.get("fraud_type") or "其他"),
             risk_level=level_map.get(level, level),
-            risk_score=float(it.get("risk_score") or 0.5),
+            risk_score=risk_score,
             source=str(it.get("source") or "web_import"),
             analysis=it.get("analysis"),
             tags=it.get("tags"),

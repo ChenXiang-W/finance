@@ -24,7 +24,13 @@ DEEPSEEK_API_KEY  = os.getenv("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 
 # ---- 微调模型 ----
-MODEL_PATH    = os.getenv("MODEL_PATH", "./training/output/fraud-lora-merged")
+# 默认模型目录按本文件位置解析（backend/../training/output/...），
+# 不再依赖进程工作目录 —— 之前 uvicorn cwd=backend 时会解析到不存在的 backend/training/...
+_BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH    = os.getenv(
+    "MODEL_PATH",
+    os.path.normpath(os.path.join(_BACKEND_DIR, "..", "training", "output", "fraud-lora-merged")),
+)
 USE_FINETUNED = os.getenv("USE_FINETUNED", "true").lower() == "true"
 # 基座模型标识（仅用于后台展示；实际训练由 training/finetune.py 决定）
 BASE_MODEL_NAME = os.getenv("BASE_MODEL_NAME", "Qwen/Qwen2.5-3B-Instruct")

@@ -158,6 +158,9 @@ async function loadFeed() {
   try {
     const data = await detectApi.threatFeed()
     if (!data) return
+    // 省份→风险数据映射在这里更新：地图先于数据初始化，
+    // 之前只在 initMap 里填充一次（null），tooltip 永远拿不到省份情报
+    ;(data?.nodes || []).forEach((n) => { provinceData[n.name] = n })
     feeds.value = data.feeds || []
     isDemo.value = !!data.demo
     if (isDemo.value) liveText.value = '演示数据'

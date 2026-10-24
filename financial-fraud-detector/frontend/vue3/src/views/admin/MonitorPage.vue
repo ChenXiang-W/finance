@@ -70,7 +70,7 @@ onMounted(load)
   </div>
 
   <div class="admin-card">
-    <div class="admin-head" style="margin-bottom: 10px"><div><b>LLM 配置</b></div><span class="hint">保存后立即生效</span></div>
+    <div class="admin-head" style="margin-bottom: 10px"><div><b>LLM 配置</b></div><span class="hint">保存后立即生效 · Key 不回显，留空表示不修改</span></div>
     <el-form label-position="top" style="max-width: 560px">
       <el-form-item label="API Key">
         <el-input v-model="llm.api_key" type="password" show-password placeholder="sk-…" />

@@ -15,7 +15,8 @@ const form = ref({ id: null, text: '', fraud_type: '', risk_level: 'high', risk_
 async function load() {
   loading.value = true
   try {
-    const d = await adminApi.cases({ limit: 100, search: search.value || undefined })
+    // 后端参数是 page / page_size（上限 100）；之前传 limit 被忽略，案例超过 20 条时看不到后面的
+    const d = await adminApi.cases({ page: 1, page_size: 100, search: search.value || undefined })
     rows.value = d?.items || []
     total.value = d?.total ?? rows.value.length
   } catch (e) {

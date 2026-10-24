@@ -379,7 +379,10 @@ function saveSettings() {
     api_key: key || null,
     base_url: apiUrl || 'https://api.deepseek.com',
     model: model || 'deepseek-chat',
-  }).catch(function () { /* 后端离线时仅保存本地 */ });
+  }).catch(function () {
+    // 服务端保存失败（需要管理员登录 / 后端离线）：本地配置仍然生效于直连模式
+    showToast('服务端 LLM 配置未保存（需在管理后台登录管理员）', 'error');
+  });
 
   var saved = document.getElementById('settingsSaved');
   if (saved) {

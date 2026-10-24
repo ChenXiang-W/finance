@@ -10,7 +10,7 @@
       "webRoot": "${workspaceFolder}/financial-fraud-detector/frontend/vue3",
       "preLaunchTask": "启动全栈",
       "sourceMaps": true,
-      "timeout": 60000
+      "timeout": 90000
     },
     {
       "name": "仅后端（uvicorn 热重载）",

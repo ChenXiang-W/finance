@@ -72,8 +72,15 @@ class FraudCaseOut(BaseModel):
         from_attributes = True
 
 # ---- 用户 ----
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    email: Optional[str] = None
+    role: str = "analyst"
+
 class UserUpdate(BaseModel):
     username: Optional[str] = None
+    password: Optional[str] = None  # 管理员重置密码；为空表示不修改
     email: Optional[str] = None
     role: Optional[str] = None
     # api_key 由管理员在后台统一管理，普通用户不需要

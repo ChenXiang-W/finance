@@ -91,11 +91,12 @@ export const adminApi = {
   trainStatus: () => http.get('/api/admin/train/status'),
   trainStart: (data) => http.post('/api/admin/train/start', data),
   trainStop: () => http.post('/api/admin/train/stop'),
-  trainLogs: (offset = 0) => http.get('/api/admin/train/logs', { params: { offset } }),
+  trainLogs: (lines = 200) => http.get('/api/admin/train/logs', { params: { lines } }),
 
   systemInfo: () => http.get('/api/admin/system-info'),
-  llmConfig: () => http.get('/api/admin/llm/config'),
-  saveLlmConfig: (data) => http.post('/api/admin/llm/config', data),
+  // 注意：LLM 配置挂在 /api 前缀（routers/detect.py），不是 /api/admin
+  llmConfig: () => http.get('/api/llm/config'),
+  saveLlmConfig: (data) => http.post('/api/llm/config', data),
 }
 
 export default http

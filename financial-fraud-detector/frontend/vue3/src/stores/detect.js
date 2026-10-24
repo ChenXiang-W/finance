@@ -118,6 +118,7 @@ export const useDetectStore = defineStore('detect', {
     async runBatch(text) {
       const app = useAppStore()
       const session = useSessionStore()
+      if (this.busy) return
       const lines = String(text || '')
         .split('\n')
         .map((l) => l.trim())
@@ -214,6 +215,7 @@ export const useDetectStore = defineStore('detect', {
 
     async sendAgent(text) {
       const app = useAppStore()
+      if (this.typing) return // 上一条还没回来，避免重复发送
       const msg = String(text || '').trim()
       if (!msg) return
       this.messages.push({ role: 'user', content: msg })

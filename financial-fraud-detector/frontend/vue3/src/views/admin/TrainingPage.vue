@@ -38,9 +38,11 @@ function stepState(step) {
 async function refreshStatus() {
   try {
     const res = await adminApi.trainStatus()
-    train.value = res?.state || res || {}
-    if (res?.log) logText.value = res.log
-    else if (res?.lines) logText.value = Array.isArray(res.lines) ? res.lines.join('\n') : res.lines
+    // /train/status 顶层就是完整状态对象（state 只是其中的字符串字段），
+    // 之前写 res?.state || res 会把对象覆盖成字符串，导致首次轮询后 running 丢失、轮询停止
+    train.value = res || {}
+    if (res?.log_tail != null) logText.value = res.log_tail
+    else if (res?.log != null) logText.value = res.log
   } catch {
     /* 训练接口不可用时静默 */
   }
@@ -73,6 +75,9 @@ async function startStep(step) {
   try {
     const d = await adminApi.trainStart({ step, epochs: Number(epochs.value) || 1 })
     train.value = d?.state || d || {}
+    // start 接口返回的原始 state 对象没有 running 字段（那是 /train/status 才有的），
+    // 补上避免第一次轮询前 UI 误判为空闲
+    if (train.value && train.value.running === undefined) train.value.running = true
     ElMessage.success('已启动')
     startPoll()
   } catch (e) {
