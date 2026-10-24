@@ -1,0 +1,43 @@
+.reasonix/
+__pycache__/
+*.pyc
+*.db
+
+# ========== Python ==========
+*.pyo
+*.pyd
+.Python
+.env
+venv/
+.env/
+.venv/
+
+# ========== 训练输出 ==========
+training/output/
+
+# ========== 日志 ==========
+*.log
+
+# ========== 编辑器 ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ========== 操作系统 ==========
+.DS_Store
+Thumbs.db
+
+# ========== 训练闭环运行时产物 ==========
+training/logs/
+training/train_state.json
+training/metrics_last.json
+# 由 prepare_data.py 生成，按需重建
+training/data/
+
+# Vue3 前端
+vue3/node_modules/
+vue3/*.log
+../vue3-dist/
+vue3-dist/

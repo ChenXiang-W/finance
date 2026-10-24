@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="jpg/Logo.jpg">
+  <title>欺诈检测 — 金盾智眼</title>
+  <link rel="stylesheet" href="css/app.css?v=20261027a">
+  <link rel="stylesheet" href="css/cyber-skin.css?v=20261027a">
+</head>
+<body>
+
+<canvas id="fxParticles" aria-hidden="true"></canvas>
+<div class="fx-vignette" aria-hidden="true"></div>
+<div class="fx-scan" aria-hidden="true"></div>
+
+<div class="app">
+
+  <!-- 左侧图标栏：品牌 / 三个视图 / 底部工具。选中态 = 1px 强调线 -->
+  <aside class="rail">
+    <a class="rail-brand" href="home.html" title="返回首页" aria-label="返回首页">
+      <img src="jpg/Logo.jpg" alt="金盾智眼">
+    </a>
+
+    <nav class="rail-nav" aria-label="主导航">
+      <button class="rail-btn" data-view="detect" aria-current="page" aria-label="检测" title="检测">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4V5z"/><path d="M8 9h8M8 12h5"/></svg>
+        <span class="rail-tip">检测</span>
+      </button>
+      <button class="rail-btn" data-view="history" aria-label="历史记录" title="历史记录">
+        <svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        <span class="rail-tip">历史记录</span>
+      </button>
+      <button class="rail-btn" data-view="stats" aria-label="统计" title="统计">
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+        <span class="rail-tip">统计</span>
+      </button>
+    </nav>
+
+    <div class="rail-bottom">
+      <button class="rail-btn" data-view="settings" aria-label="设置" title="设置">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1"/></svg>
+        <span class="rail-tip">设置</span>
+      </button>
+      <a class="rail-btn" href="admin.html" target="_blank" rel="noopener" aria-label="管理后台" title="管理后台">
+        <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>
+        <span class="rail-tip">管理后台</span>
+      </a>
+    </div>
+  </aside>
+
+  <main class="canvas">
+
+    <!-- ==================== 检测：左资产栏 + 右工作台 ==================== -->
+    <section class="view view-workspace" id="view-detect">
+      <div class="workspace">
+
+        <!-- 左：会话 / 引擎 / 置顶 / 最近 / 快捷操作 / 状态 -->
+        <aside class="threads" aria-label="会话与引擎">
+          <header class="threads-head">
+            <span class="mark">金</span>
+            <div class="threads-id">
+              <b>本机会话</b>
+              <span class="hint mono" id="sessionLabel">-</span>
+            </div>
+          </header>
+
+          <button class="btn primary block" id="btnNewDetect">新检测</button>
+
+          <div class="block">
+            <div class="block-label">分析引擎</div>
+            <div class="engines" id="engines" role="radiogroup" aria-label="分析引擎">
+              <button class="engine" role="radio" data-engine="auto" aria-checked="true">
+                <span class="engine-name">自动</span>
+                <span class="engine-hint">本地优先</span>
+              </button>
+              <button class="engine" role="radio" data-engine="deepseek" aria-checked="false">
+                <span class="engine-name">深度</span>
+                <span class="engine-hint">DeepSeek</span>
+              </button>
+              <button class="engine" role="radio" data-engine="local" aria-checked="false">
+                <span class="engine-name">本地</span>
+                <span class="engine-hint">微调模型</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-label">置顶</div>
+            <div id="pinnedReport"><p class="hint">还没有报告</p></div>
+          </div>
+
+          <div class="block grow">
+            <div class="block-label">
+              最近检测
+              <button class="link" data-goto="history">全部</button>
+            </div>
+            <div class="rows" id="recentRows">
+              <p class="hint">还没有检测记录</p>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-label">快捷操作</div>
+            <div class="quick">
+              <button class="quick-row" id="btnQuickBatch"><span>批量检测</span><span class="num">20</span></button>
+              <button class="quick-row" id="btnQuickUrl"><span>URL 抓取</span><span class="num">1</span></button>
+              <button class="quick-row" data-goto="stats"><span>统计</span><span class="num">4</span></button>
+              <button class="quick-row" data-goto="settings"><span>设置</span><span class="num"></span></button>
+            </div>
+          </div>
+
+          <footer class="threads-foot">
+            <span class="dot" id="serviceDot"></span>
+            <span class="hint" id="serviceFoot">检测中…</span>
+          </footer>
+        </aside>
+
+        <!-- 右：工作台 -->
+        <section class="surface" aria-label="工作台">
+          <header class="surface-head">
+            <div class="surface-title">
+              <h1 id="surfaceTitle">新检测</h1>
+              <span class="hint" id="surfaceMeta">选择引擎后粘贴文本</span>
+            </div>
+            <div class="surface-actions">
+              <button class="btn ghost sm" id="btnCopy" hidden>复制</button>
+              <button class="btn ghost sm" id="btnExport" hidden>导出</button>
+              <button class="btn ghost sm" data-goto="history">历史</button>
+            </div>
+          </header>
+
+          <div class="threat-ticker" id="threatTicker" aria-label="威胁情报滚动播报">
+            <span class="ticker-label">ALERT</span>
+            <div class="ticker-track" id="tickerTrack"></div>
+          </div>
+
+          <div class="surface-body" id="surfaceBody">
+            <!-- 空态 -->
+            <div class="welcome" id="welcome">
+              <span class="mark lg">金</span>
+              <h2>粘贴文本，我来判断风险</h2>
+              <p class="hint">先做规则预筛与六维分析，再给出风险评分、分类与防范建议。</p>
+
+              <div class="suggestions" id="suggestions">
+                <button class="suggestion" data-example="example1">
+                  <span class="suggestion-label">冒充客服</span>
+                  <span class="suggestion-hint">征信、屏幕共享</span>
+                </button>
+                <button class="suggestion" data-example="example2">
+                  <span class="suggestion-label">虚假投资</span>
+                  <span class="suggestion-hint">高收益、拉群</span>
+                </button>
+                <button class="suggestion" data-example="example3">
+                  <span class="suggestion-label">冒充公检法</span>
+                  <span class="suggestion-hint">安全账户、案件</span>
+                </button>
+                <button class="suggestion" data-example="example4">
+                  <span class="suggestion-label">信贷诈骗</span>
+                  <span class="suggestion-hint">低息、秒到账</span>
+                </button>
+              </div>
+
+              <button class="example-link" id="btnDemo">查看示例报告</button>
+
+              <div class="welcome-recent" id="welcomeRecent"></div>
+
+              <p class="disclaimer">结果仅供参考，不能替代人工核验。</p>
+            </div>
+
+            <!-- 报告 + 对话 -->
+            <div id="reportBody"></div>
+            <div class="conversation" id="conversation" hidden>
+              <div class="agent-log" id="agentLog"></div>
+            </div>
+          </div>
+
+          <!-- 常驻输入区 -->
+          <footer class="composer" id="composer">
+            <textarea class="composer-input" id="textInput" rows="1" maxlength="10000"
+              placeholder="粘贴短信、聊天记录、邮件或广告文案…"></textarea>
+            <div class="composer-foot">
+              <div class="composer-chips">
+                <button class="chip" id="chipExample" title="填入一条示例">示例</button>
+                <button class="chip" id="chipBatch" aria-pressed="false" title="每行一条，最多 20 条">批量</button>
+                <button class="chip" id="chipUrl" aria-pressed="false" title="粘贴 URL 抓取正文">URL</button>
+                <button class="chip" id="chipNew" hidden title="开始一个新检测">新检测</button>
+                <span class="composer-count mono" id="charCount">0 / 10000</span>
+              </div>
+              <div class="composer-actions">
+                <span class="composer-mode" id="composerMode">检测</span>
+                <button class="send" id="btnSend" title="开始检测（Ctrl+Enter）" aria-label="开始检测">
+                  <svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                </button>
+              </div>
+            </div>
+            <p class="composer-note hint" id="composerNote" hidden></p>
+          </footer>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- ==================== 历史记录 ==================== -->
+    <section class="view" id="view-history" hidden>
+      <header class="title-row">
+        <div>
+          <h1>历史记录</h1>
+          <p class="sub">本会话的检测记录，按时间倒序。点任意一行可恢复当时的完整报告。</p>
+        </div>
+      </header>
+
+      <div class="panel">
+        <header>
+          <div class="filters">
+            <input class="input" id="historySearch" placeholder="搜索文本、类型或等级" style="width:260px;">
+            <div class="segmented" id="historyLevel">
+              <button data-level="all" aria-pressed="true">全部</button>
+              <button data-level="high" aria-pressed="false">高风险</button>
+              <button data-level="mid" aria-pressed="false">中风险</button>
+              <button data-level="low" aria-pressed="false">低风险</button>
+            </div>
+          </div>
+          <span class="meta" id="historyTotal">0 条</span>
+        </header>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:150px;">时间</th>
+                <th>文本</th>
+                <th style="width:110px;">类型</th>
+                <th style="width:92px;">等级</th>
+                <th class="n" style="width:72px;">评分</th>
+                <th style="width:52px;"></th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 统计 ==================== -->
+    <section class="view" id="view-stats" hidden>
+      <header class="title-row">
+        <div>
+          <h1>统计</h1>
+          <p class="sub" id="statsSub">本会话的检测分布与最近记录</p>
+        </div>
+        <div class="segmented" id="statsScope">
+          <button data-scope="session" aria-pressed="true">本会话</button>
+          <button data-scope="global" aria-pressed="false">全部记录</button>
+        </div>
+      </header>
+
+      <div class="kpis" style="margin-bottom:24px;">
+        <div class="kpi"><div class="kpi-label">检测总数</div><div class="kpi-value mono" id="sKpiTotal">0</div><div class="kpi-note">条</div></div>
+        <div class="kpi"><div class="kpi-label">高风险</div><div class="kpi-value mono" id="sKpiHigh">0</div><div class="kpi-note">评分 ≥ 0.60</div></div>
+        <div class="kpi"><div class="kpi-label">平均评分</div><div class="kpi-value mono" id="sKpiAvg">-</div><div class="kpi-note">0-1</div></div>
+        <div class="kpi"><div class="kpi-label">覆盖类型</div><div class="kpi-value mono" id="sKpiTypes">0</div><div class="kpi-note">类</div></div>
+      </div>
+
+      <div class="grid">
+        <section class="panel col-4">
+          <header><h2>欺诈类型分布</h2><span class="meta">按记录数</span></header>
+          <div id="statsCategories"><div class="empty"><p>暂无数据</p></div></div>
+        </section>
+        <section class="panel col-4">
+          <header><h2>风险等级分布</h2><span class="meta">按记录数</span></header>
+          <div id="statsRisk"><div class="empty"><p>暂无数据</p></div></div>
+        </section>
+        <section class="panel col-4">
+          <header><h2>评分分布</h2><span class="meta">本会话</span></header>
+          <div id="statsScale"><div class="empty"><p>暂无数据</p></div></div>
+        </section>
+
+        <section class="panel col-12">
+          <header><h2>最近记录</h2><span class="meta" id="statsRecentNote">本会话最近 0 条</span></header>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:150px;">时间</th>
+                  <th>文本</th>
+                  <th style="width:110px;">类型</th>
+                  <th style="width:92px;">等级</th>
+                  <th class="n" style="width:72px;">评分</th>
+                </tr>
+              </thead>
+              <tbody id="statsRecent"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ==================== 设置 ==================== -->
+    <section class="view" id="view-settings" hidden>
+      <header class="title-row">
+        <div>
+          <h1>设置</h1>
+          <p class="sub">外观、服务地址与模型。改动保存在本机浏览器；后端地址修改后需刷新页面。</p>
+        </div>
+      </header>
+
+      <div class="settings">
+
+        <div class="setting-section">
+          <div class="setting-info">
+            <h2>外观</h2>
+            <p>深色/浅色与动效开关。关掉动效会同时停止过渡动画，适合低配机器演示。</p>
+          </div>
+          <div class="setting-panel">
+            <div class="field-row">
+              <div class="field-text">
+                <label for="setTheme">深色终端主题</label>
+                <p>默认深色；关闭使用浅色。</p>
+              </div>
+              <input type="checkbox" class="switch" id="setTheme" checked>
+            </div>
+            <div class="field-row">
+              <div class="field-text">
+                <label for="setMotion">界面动效</label>
+                <p>关闭后不再有过渡与动画。</p>
+              </div>
+              <input type="checkbox" class="switch" id="setMotion" checked>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-info">
+            <h2>服务</h2>
+            <p>后端 API 地址。留空时自动使用当前主机的 8000 端口。</p>
+          </div>
+          <div class="setting-panel">
+            <div class="field">
+              <label for="setApiBase">后端 API 地址</label>
+              <input class="input" id="setApiBase" placeholder="http://127.0.0.1:8000">
+              <span class="hint" id="svcStatus">检测中…</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-info">
+            <h2>模型</h2>
+            <p>DeepSeek 用于深度分析；未配置 Key 时只做规则预筛与本地微调模型推理。</p>
+          </div>
+          <div class="setting-panel">
+            <div class="field">
+              <label for="setKey">DeepSeek API Key</label>
+              <input class="input" id="setKey" type="password" placeholder="sk-…">
+            </div>
+            <div class="field">
+              <label for="setApiUrl">API 地址</label>
+              <input class="input" id="setApiUrl" placeholder="https://api.deepseek.com">
+            </div>
+            <div class="field">
+              <label for="setModel">模型</label>
+              <input class="input" id="setModel" placeholder="deepseek-chat">
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-info">
+            <h2>训练</h2>
+            <p>录入训练数据、微调并启用垂直模型在管理后台完成。</p>
+          </div>
+          <div class="setting-panel">
+            <a class="btn" href="admin.html" target="_blank" rel="noopener" style="justify-self:start;">打开管理后台</a>
+          </div>
+        </div>
+
+        <div class="setting-section">
+          <div class="setting-info"></div>
+          <div class="setting-panel" style="display:flex;align-items:center;gap:12px;">
+            <button class="btn primary" id="btnSaveSettings">保存设置</button>
+            <span class="hint" id="settingsSaved" hidden>已保存</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/modules/config.js?v=20261027a"></script>
+<script src="js/modules/utils.js?v=20261027a"></script>
+<script src="js/modules/api.js?v=20261027a"></script>
+<script src="js/modules/charts.js?v=20261027a"></script>
+<script src="js/modules/agent.js?v=20261027a"></script>
+<script src="js/modules/detect.js?v=20261027a"></script>
+<script src="js/modules/nav.js?v=20261027a"></script>
+<script src="js/modules/cyber.js?v=20261027a"></script>
+<script src="js/modules/main.js?v=20261027a"></script>
+</body>
+</html>

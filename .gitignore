@@ -1,0 +1,31 @@
+# 依赖与构建产物
+node_modules/
+vue3-dist/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 模型与训练产物（体积大 / 可复现）
+training/output/
+training/logs/
+training/data/*.jsonl
+*.safetensors
+*.gguf
+*.bin
+
+# 数据库与日志
+*.db
+*.sqlite*
+*.log
+
+# 本机配置与密钥
+.env
+.env.*
+.vscode/*.bak
+
+# 临时与个人材料
+_shots/
+_final_shots/
+*.doc
+*.docx
+附件*

@@ -1,0 +1,742 @@
+/* ==========================================================================
+   admin.css — 管理后台（高端科技金融风）
+   金盾智眼 — 深空蓝黑 + 金融金 + 科技青 · Element UI 深色适配
+   ========================================================================== */
+
+/* ==========================================================================
+   1. 登录页
+   ========================================================================== */
+/* 覆盖 element-ui.css 内置的演示 body 样式（padding 污染） */
+body {
+  padding: 0 !important;
+  font-size: 14px;
+  word-break: normal;
+}
+.admin-login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #05080f;
+  position: relative;
+}
+.admin-login-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 700px 420px at 50% -10%, rgba(56, 189, 248, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 800px 480px at 50% 112%, rgba(232, 194, 106, 0.05) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.admin-login-card {
+  width: 400px;
+  padding: 44px 42px 40px;
+  background: var(--bg-1);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-lg), 0 0 0 1px rgba(232, 194, 106, 0.05);
+  animation: loginIn 0.35s ease-out;
+}
+@keyframes loginIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-hex {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.admin-login-card h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+.admin-login-card p {
+  font-size: 14px;
+  color: var(--text-2);
+  margin-bottom: 28px;
+  letter-spacing: 0.5px;
+}
+
+.login-submit {
+  width: 100%;
+  margin-top: 10px;
+  height: 44px;
+  font-size: 15px;
+  letter-spacing: 2px;
+  background: linear-gradient(135deg, #d4af5a, #e8c26a) !important;
+  border-color: transparent !important;
+  color: #171207 !important;
+  font-weight: 700;
+}
+.login-submit:hover {
+  background: linear-gradient(135deg, #e8c26a, #f0d489) !important;
+  box-shadow: 0 4px 18px rgba(232, 194, 106, 0.25);
+}
+
+.login-error {
+  color: var(--danger);
+  font-size: 13px;
+  margin-top: 14px;
+}
+
+/* ==========================================================================
+   2. 主布局
+   ========================================================================== */
+.admin-layout {
+  min-height: 100vh;
+  padding: 20px;
+  background: #05080f;
+  position: relative;
+}
+
+/* 背景粒子画布 */
+#adminParticles {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* ==========================================================================
+   3. 一体化外壳
+   ========================================================================== */
+.admin-shell {
+  display: flex;
+  width: 100%;
+  max-width: 1600px;
+  min-height: calc(100vh - 40px);
+  margin: 0 auto;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  box-shadow: var(--shadow-md);
+}
+/* 顶部金色微光 */
+.admin-shell::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 60px;
+  right: 60px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(232, 194, 106, 0.45), transparent);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   4. 侧边栏
+   ========================================================================== */
+.admin-sidebar {
+  width: 208px;
+  flex-shrink: 0;
+  z-index: 5;
+  background: rgba(7, 11, 20, 0.6);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 22px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 10px 0;
+}
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 22px;
+  font-size: 14px;
+  color: var(--text-2);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.18s ease;
+  border-left: 2px solid transparent;
+}
+.sidebar-nav a:hover {
+  color: var(--text-0);
+  background: rgba(139, 155, 180, 0.04);
+}
+.sidebar-nav a.active {
+  color: var(--cyan);
+  background: rgba(56, 189, 248, 0.07);
+  border-left-color: var(--cyan);
+}
+.nav-icon {
+  font-size: 15px;
+  width: 22px;
+  text-align: center;
+  opacity: 0.8;
+}
+
+.sidebar-footer {
+  padding: 16px 22px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-2);
+  display: flex;
+  justify-content: space-between;
+}
+.sidebar-footer a {
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   5. 右侧主体
+   ========================================================================== */
+.admin-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  background: rgba(5, 8, 15, 0.35);
+}
+
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background: rgba(10, 16, 28, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.admin-topbar h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-0);
+  letter-spacing: 0.5px;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.topbar-time {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+.topbar-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--success);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(53, 208, 165, 0.5);
+  animation: dotPulse 2s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+.topbar-status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-2);
+  letter-spacing: 1.5px;
+}
+
+/* ==========================================================================
+   6. 卡片系统
+   ========================================================================== */
+.glass-card {
+  background: rgba(12, 18, 32, 0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  box-shadow: var(--shadow-xs);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.glass-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.glass-card h4 {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.glass-card p {
+  font-size: 13px;
+  color: var(--text-2);
+  margin: 0;
+}
+
+.glass-grid {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.glass-grid.four  { grid-template-columns: repeat(4, 1fr); }
+.glass-grid.three { grid-template-columns: repeat(3, 1fr); }
+
+.glass-row {
+  display: flex;
+  gap: 14px;
+}
+.flex1 { flex: 1; }
+
+.gc-num {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.gc-label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-2);
+  margin-top: 10px;
+}
+
+.gc-big {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  margin: 6px 0;
+  color: var(--text-0);
+  font-variant-numeric: tabular-nums;
+}
+.gc-big.blue { color: var(--cyan); }
+.gc-big.r    { color: var(--danger); }
+
+.gc-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gc-rows span {
+  font-size: 14px;
+  color: var(--text-2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.gc-rows b {
+  font-weight: 600;
+  color: var(--text-0);
+  font-size: 13px;
+}
+.gc-rows b.g { color: var(--success); }
+.gc-rows b.r { color: var(--danger); }
+.gc-rows b.w { color: var(--warning); }
+
+.glass-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(139, 155, 180, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.view-dashboard,
+.view-panel {
+  padding: 16px 20px;
+}
+
+/* ==========================================================================
+   7. Element UI 深色适配
+   ========================================================================== */
+.el-table {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-1) !important;
+  font-size: 14px !important;
+}
+.el-table::before { display: none !important; }
+.el-table__body-wrapper { border: none !important; }
+
+.el-table th {
+  background: rgba(139, 155, 180, 0.04) !important;
+  color: var(--text-2) !important;
+  font-weight: 600;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border) !important;
+  border-top: none !important;
+  padding: 10px 0 !important;
+  letter-spacing: 0.5px;
+}
+.el-table th.is-leaf {
+  border-bottom: 1px solid var(--border) !important;
+  border-top: none !important;
+}
+.el-table td {
+  border-bottom: 1px solid rgba(139, 155, 180, 0.07) !important;
+  padding: 10px 0 !important;
+  color: var(--text-1) !important;
+}
+.el-table--striped .el-table__body tr.el-table__row--striped td {
+  background: rgba(139, 155, 180, 0.02) !important;
+}
+.el-table__body tr:hover > td {
+  background: rgba(56, 189, 248, 0.04) !important;
+}
+.el-table__empty-text {
+  color: var(--text-2) !important;
+}
+
+.el-input__inner {
+  background: var(--bg-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-0) !important;
+  font-size: 14px !important;
+  border-radius: var(--radius-xs) !important;
+}
+.el-input__inner:focus {
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1) !important;
+}
+.el-select .el-input__inner {
+  background: var(--bg-2) !important;
+}
+
+.el-dialog {
+  background: var(--bg-1) !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: 14px !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.el-dialog__title {
+  color: var(--text-0) !important;
+  font-weight: 600;
+  font-size: 16px;
+}
+.el-dialog__header {
+  border-bottom: 1px solid var(--border);
+  padding: 18px 24px;
+}
+.el-dialog__body { padding: 22px 24px; }
+.el-form-item__label {
+  color: var(--text-1) !important;
+  font-weight: 500;
+}
+
+.el-pagination {
+  background: transparent !important;
+  padding: 0 !important;
+}
+.el-pagination button,
+.el-pagination .el-pager li {
+  background: rgba(139, 155, 180, 0.05) !important;
+  color: var(--text-1) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-xs) !important;
+}
+.el-pagination .el-pager li.active {
+  background: rgba(56, 189, 248, 0.14) !important;
+  color: var(--cyan) !important;
+  border-color: rgba(56, 189, 248, 0.35) !important;
+}
+
+.el-button--primary {
+  background: linear-gradient(135deg, #d4af5a, #e8c26a) !important;
+  border-color: transparent !important;
+  border-radius: var(--radius-xs) !important;
+  color: #171207 !important;
+  font-weight: 600 !important;
+}
+.el-button--primary:hover {
+  background: linear-gradient(135deg, #e8c26a, #f0d489) !important;
+  box-shadow: 0 3px 14px rgba(232, 194, 106, 0.25) !important;
+}
+.el-button--text { color: var(--cyan) !important; }
+
+.del-btn { color: var(--danger) !important; }
+
+.el-tag {
+  border: 1px solid var(--border) !important;
+  border-radius: 4px !important;
+}
+
+.el-alert {
+  background: rgba(56, 189, 248, 0.06) !important;
+  border: 1px solid rgba(56, 189, 248, 0.18) !important;
+  border-radius: var(--radius-xs) !important;
+}
+.el-alert__title { color: var(--text-1) !important; }
+
+/* 弹窗遮罩 */
+.v-modal {
+  background: rgba(3, 6, 12, 0.7) !important;
+  backdrop-filter: blur(4px);
+}
+
+/* ==========================================================================
+   8. 响应式
+   ========================================================================== */
+@media (max-width: 1100px) {
+  .glass-grid.four  { grid-template-columns: repeat(2, 1fr); }
+  .glass-grid.three { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .admin-sidebar { width: 56px; }
+  .sidebar-brand span,
+  .sidebar-nav a { font-size: 0; }
+  .sidebar-nav a .nav-icon { margin: 0; }
+  .sidebar-nav a {
+    justify-content: center;
+    padding: 14px 0;
+  }
+  .sidebar-footer {
+    justify-content: center;
+    font-size: 0;
+  }
+  .glass-grid.four,
+  .glass-grid.three { grid-template-columns: 1fr; }
+  .glass-row { flex-direction: column; }
+  .view-dashboard,
+  .view-panel { padding: 12px; }
+}
+
+/* ==========================================================================
+   训练数据 / 模型训练（训练闭环）
+   ========================================================================== */
+.hint-line {
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+.hint-line b { color: var(--text-1); }
+.hint-line code {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--cyan);
+  background: rgba(0, 240, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* 数据来源 */
+.src-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+}
+.src-row:last-of-type { border-bottom: none; }
+.src-name { flex: 1; color: var(--text-1); }
+.src-count { font-family: var(--font-mono); color: var(--cyan); font-weight: 600; }
+
+/* 类型分布 */
+.dist-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.dist-name { width: 88px; font-size: 12px; color: var(--text-2); flex-shrink: 0; }
+.dist-row .progress-bar { flex: 1; }
+.dist-count { width: 44px; text-align: right; font-size: 12px; font-family: var(--font-mono); color: var(--text-1); }
+
+/* 训练状态条 */
+.train-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.train-head-left,
+.train-head-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.train-meta { font-size: 12px; color: var(--text-2); font-family: var(--font-mono); }
+
+/* 四步流水线 */
+.pipe-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.pipe-step {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(12, 18, 32, 0.8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+.pipe-step:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.pipe-step.done { border-color: rgba(0, 255, 102, 0.35); }
+.pipe-step.active { border-color: rgba(0, 240, 255, 0.5); box-shadow: 0 0 18px rgba(0, 240, 255, 0.12); }
+.pipe-step.failed { border-color: rgba(255, 68, 68, 0.45); }
+.pipe-index {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #00f0ff;
+  border: 1px solid rgba(0, 240, 255, 0.4);
+  background: rgba(0, 240, 255, 0.08);
+  flex-shrink: 0;
+}
+.pipe-step.done .pipe-index { color: #00ff66; border-color: rgba(0, 255, 102, 0.45); background: rgba(0, 255, 102, 0.08); }
+.pipe-step.active .pipe-index { animation: dotPulse 1.6s ease-in-out infinite; }
+.pipe-body { flex: 1; min-width: 0; }
+.pipe-title { font-size: 13px; font-weight: 600; color: var(--text-0); margin-bottom: 3px; }
+.pipe-desc { font-size: 11px; color: var(--text-2); line-height: 1.5; min-height: 32px; }
+.pipe-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+.pipe-state { font-size: 11px; color: var(--text-2); }
+
+/* 训练参数 */
+.param-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.param-label { width: 132px; font-size: 12px; color: var(--text-2); flex-shrink: 0; }
+
+/* 训练日志控制台 */
+.log-console {
+  margin: 10px 0 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px 14px;
+  background: #05080f;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: #9fb4cf;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+@media (max-width: 1280px) {
+  .pipe-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .pipe-grid { grid-template-columns: 1fr; }
+  .glass-grid.four { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ==========================================================================
+   训练闭环补充：Element UI 深色补齐（表头 tr / 文本域 / 下拉 / 弹框 / 消息）
+   —— 之前只覆盖了 `.el-table th`，但 Element UI 把表头白底设在 `<tr>` 上，
+      导致案例管理表头是一条白带；下拉、确认框、Toast 也还是白色。
+   ========================================================================== */
+.el-table tr,
+.el-table thead tr,
+.el-table__header-wrapper tr { background-color: transparent !important; }
+.el-table th.el-table__cell { background-color: rgba(139, 155, 180, 0.05) !important; }
+.el-table__empty-block { background: transparent !important; }
+.el-table__footer-wrapper tbody td,
+.el-table__header-wrapper tbody td { background-color: transparent !important; }
+
+.el-textarea__inner {
+  background: var(--bg-2) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-0) !important;
+  font-size: 13px !important;
+  border-radius: var(--radius-xs) !important;
+  font-family: var(--font-mono) !important;
+  line-height: 1.6 !important;
+}
+.el-textarea__inner:focus {
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1) !important;
+}
+.el-textarea__inner::placeholder { color: var(--text-2) !important; }
+
+.el-select-dropdown,
+.el-dropdown-menu,
+.el-picker-panel {
+  background: var(--bg-1) !important;
+  border: 1px solid var(--border-strong) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+.el-select-dropdown__item { color: var(--text-1) !important; }
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover { background: rgba(56, 189, 248, 0.08) !important; color: var(--cyan) !important; }
+.el-select-dropdown__item.selected { color: var(--cyan) !important; font-weight: 600 !important; }
+.el-select-dropdown__empty { color: var(--text-2) !important; }
+
+.el-message-box {
+  background: var(--bg-1) !important;
+  border: 1px solid var(--border-strong) !important;
+  box-shadow: var(--shadow-lg) !important;
+}
+.el-message-box__title,
+.el-message-box__content { color: var(--text-0) !important; }
+.el-message-box__headerbtn .el-message-box__close { color: var(--text-2) !important; }
+.el-message-box__input .el-input__inner { background: var(--bg-2) !important; }
+
+.el-message {
+  background: var(--bg-1) !important;
+  border: 1px solid var(--border-strong) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+.el-message--success .el-message__content { color: var(--success) !important; }
+.el-message--error .el-message__content { color: var(--danger) !important; }
+.el-message--warning .el-message__content { color: var(--warning) !important; }
+.el-message .el-message__content { color: var(--text-0) !important; }
+
+.el-dialog__header { border-bottom: 1px solid var(--border) !important; }
+.el-dialog__footer { border-top: 1px solid var(--border) !important; padding-top: 12px; }
+.el-form-item__label { color: var(--text-2) !important; }
+.el-input-number__decrease,
+.el-input-number__increase {
+  background: var(--bg-3) !important;
+  color: var(--text-1) !important;
+  border-color: var(--border) !important;
+}
+.el-switch.is-checked .el-switch__core { background-color: #00b894 !important; border-color: #00b894 !important; }

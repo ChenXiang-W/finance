@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="jpg/Logo.jpg">
+  <title>管理后台 — 金盾智眼</title>
+  <link rel="stylesheet" href="css/vendor/element-ui.css?v=20261023c">
+  <link rel="stylesheet" href="css/reset.css?v=20261023c">
+  <link rel="stylesheet" href="css/admin.css?v=20261023c">
+</head>
+<body>
+<!-- ============================================================
+  管理后台 — 赛博朋克电路雨毛玻璃风格
+  六大模块：仪表盘 / 训练数据 / 模型训练 / 案例管理 / 用户管理 / 系统监控
+  数据闭环：案例录入 → 生成训练集 → LoRA 微调 → 合并 → 评测 → 热加载
+  ============================================================ -->
+<div id="admin-app">
+
+  <!-- ========== 登录页 ========== -->
+  <div v-if="!loggedIn" class="admin-login-wrap">
+    <div class="admin-login-card">
+      <div class="login-hex">
+        <img src="jpg/Logo.jpg" alt="金盾智眼" style="width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 0 16px rgba(79,110,247,0.4));">
+      </div>
+      <h1>管理后台</h1>
+      <p>金盾智眼 · 金融欺诈智能检测系统</p>
+      <el-form :model="loginForm" :rules="loginRules"
+               ref="loginFormRef" @submit.native.prevent="doLogin">
+        <el-form-item prop="username">
+          <el-input v-model="loginForm.username" placeholder="用户名"
+                    prefix-icon="el-icon-user"></el-input>
+        </el-form-item>
+        <el-form-item prop="password">
+          <el-input v-model="loginForm.password" type="password"
+                    placeholder="密码" prefix-icon="el-icon-lock"
+                    @keyup.enter.native="doLogin"></el-input>
+        </el-form-item>
+        <el-button type="primary" :loading="loginLoading"
+                   @click="doLogin" class="login-submit">
+          登 录
+        </el-button>
+      </el-form>
+      <p v-if="loginError" class="login-error">{{ loginError }}</p>
+    </div>
+  </div>
+
+  <!-- ========== 主布局 ========== -->
+  <div v-else class="admin-layout">
+    <canvas id="adminParticles"></canvas>
+
+    <!-- 一体化毛玻璃外壳 -->
+    <div class="admin-shell">
+
+      <!-- ===== 左侧导航 ===== -->
+      <aside class="admin-sidebar">
+        <div class="sidebar-brand">
+          <img src="jpg/Logo.jpg" alt="金盾智眼" style="width:28px;height:28px;object-fit:contain;">
+          <span>FRAUD ADMIN</span>
+        </div>
+        <nav class="sidebar-nav">
+          <a v-for="m in menu" :key="m.key"
+             :class="{ active: currentView === m.key }"
+             @click="switchView(m.key)">
+            <span class="nav-icon">{{ m.icon }}</span>{{ m.label }}
+          </a>
+        </nav>
+        <div class="sidebar-footer">
+          <span>{{ adminUser }}</span>
+          <a @click="logout">退出</a>
+        </div>
+      </aside>
+
+      <!-- ===== 右侧主体 ===== -->
+      <main class="admin-main">
+        <header class="admin-topbar">
+          <h2>{{ currentTitle }}</h2>
+          <div class="topbar-right">
+            <span class="topbar-time">{{ now }}</span>
+            <span class="topbar-dot"></span>
+            <span class="topbar-status">SYS.ONLINE</span>
+          </div>
+        </header>
+
+        <!-- ===== 仪表盘 ===== -->
+        <section v-if="currentView === 'dashboard'" class="view-dashboard">
+          <div class="glass-grid four">
+            <div class="glass-card" v-for="s in statsCards" :key="s.label">
+              <span class="gc-num" :style="{ color: s.color }">{{ s.value }}</span>
+              <span class="gc-label">{{ s.label }}</span>
+            </div>
+          </div>
+          <div class="glass-row">
+            <div class="glass-card flex1">
+              <h4>🖥 系统状态</h4>
+              <div class="gc-rows" v-if="sysInfo.server">
+                <span>CPU <b>{{ sysInfo.server.cpu_percent }}%</b></span>
+                <span>内存 <b>{{ sysInfo.server.memory_percent }}%</b></span>
+                <span>数据库 <b>{{ sysInfo.database ? sysInfo.database.size_kb : '--' }} KB</b></span>
+                <span>DeepSeek
+                  <b :class="sysInfo.api.deepseek_configured ? 'g' : 'r'">
+                    {{ sysInfo.api.deepseek_configured ? '✓ 已配置' : '✗ 未配置' }}
+                  </b>
+                </span>
+              </div>
+            </div>
+            <div class="glass-card flex1">
+              <h4>🤖 模型状态</h4>
+              <div class="gc-rows" v-if="modelInfo">
+                <span>基座 <b>{{ modelInfo.base_model }}</b></span>
+                <span>微调
+                  <b :class="modelInfo.fine_tuned ? 'g' : 'w'">
+                    {{ modelInfo.fine_tuned ? '✓ 已就绪' : '未训练' }}
+                  </b>
+                </span>
+                <span>准确率 <b>{{ modelInfo.metrics ? modelInfo.metrics.accuracy : '--' }}%</b></span>
+                <span>F1 <b>{{ modelInfo.metrics ? modelInfo.metrics.f1_score : '--' }}%</b></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== 训练数据 ===== -->
+        <section v-if="currentView === 'dataset'" class="view-panel">
+          <!-- 概览四卡 -->
+          <div class="glass-grid four">
+            <div class="glass-card">
+              <span class="gc-num" style="color:#00e5ff">{{ dataset.cases ? dataset.cases.active : 0 }}</span>
+              <span class="gc-label">启用中的案例（会进训练集）</span>
+            </div>
+            <div class="glass-card">
+              <span class="gc-num" style="color:#4f6ef7">{{ dataset.generated ? dataset.generated.train : 0 }}</span>
+              <span class="gc-label">训练集 train.jsonl</span>
+            </div>
+            <div class="glass-card">
+              <span class="gc-num" style="color:#00ff66">{{ dataset.generated ? dataset.generated.val : 0 }}</span>
+              <span class="gc-label">验证集 val.jsonl</span>
+            </div>
+            <div class="glass-card">
+              <span class="gc-num" style="font-size:20px;"
+                    :class="dataset.artifacts && dataset.artifacts.merged && dataset.artifacts.merged.exists ? 'g' : 'w'">
+                {{ dataset.artifacts && dataset.artifacts.merged && dataset.artifacts.merged.exists ? '已合并' : '未合并' }}
+              </span>
+              <span class="gc-label">推理模型产物</span>
+            </div>
+          </div>
+
+          <div class="glass-row">
+            <!-- 数据来源 -->
+            <div class="glass-card flex1">
+              <h4>🧩 数据来源</h4>
+              <div class="src-row" v-for="s in (dataset.sources || [])" :key="s.name">
+                <span class="src-name">{{ s.name }}</span>
+                <span class="src-count">{{ s.count }}</span>
+              </div>
+              <p class="hint-line">
+                管理后台录入的案例只要「启用训练」就会在下次生成训练集时并进来。
+              </p>
+              <div class="glass-toolbar" style="margin-top:14px;">
+                <el-button type="primary" size="small" icon="el-icon-refresh"
+                           :loading="preparing" @click="prepareDataset">生成训练集</el-button>
+                <el-button size="small" icon="el-icon-upload2" @click="importDlg = true">批量导入案例</el-button>
+                <span class="hint-line" style="margin:0 0 0 8px;">
+                  上次生成：{{ dataset.generated && dataset.generated.train_mtime ? dataset.generated.train_mtime : '从未' }}
+                </span>
+              </div>
+              <el-alert v-if="dataset.generated && dataset.generated.stale" type="warning" :closable="false" show-icon
+                        style="margin-top:12px;"
+                        title="案例有新增/修改，建议重新生成训练集后再训练"></el-alert>
+            </div>
+
+            <!-- 类型分布 -->
+            <div class="glass-card flex1">
+              <h4>📊 启用案例的类型分布</h4>
+              <template v-if="dataset.cases && dataset.cases.by_type && dataset.cases.by_type.length">
+                <div v-for="t in dataset.cases.by_type" :key="t.name" class="dist-row">
+                  <span class="dist-name">{{ t.name }}</span>
+                  <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: distPct(t.count) + '%', background: distColor(t.name) }"></div>
+                  </div>
+                  <span class="dist-count">{{ t.count }}</span>
+                </div>
+              </template>
+              <p v-else class="hint-line">还没有启用中的案例。去「案例管理」新增，或点上面的「批量导入案例」。</p>
+              <p class="hint-line" style="margin-top:10px;">
+                建议每个类型 ≥ 30 条再训练，否则指标不可信（当前样本量很小）。
+              </p>
+            </div>
+          </div>
+
+          <!-- 已生成的数据预览 -->
+          <div class="glass-card" style="margin-top:14px;">
+            <h4>📄 最近一次生成结果</h4>
+            <div class="gc-rows" v-if="dataset.generated">
+              <span>全量 <b>{{ dataset.generated.all }} 条</b></span>
+              <span>训练集 <b>{{ dataset.generated.train }} 条</b></span>
+              <span>验证集 <b>{{ dataset.generated.val }} 条</b></span>
+              <span>生成时间 <b>{{ dataset.generated.train_mtime || '—' }}</b></span>
+            </div>
+            <div class="gc-rows" v-if="dataset.last_prepare">
+              <span>上次统计 <b>{{ dataset.last_prepare.at }}</b></span>
+              <span>去重后 <b>{{ dataset.last_prepare.total || '—' }} 条</b></span>
+            </div>
+            <p class="hint-line">下一步：到「模型训练」页点「开始微调」。</p>
+          </div>
+        </section>
+
+        <!-- ===== 用户管理 ===== -->
+        <section v-if="currentView === 'users'" class="view-panel">
+          <div class="glass-card" style="margin-bottom:0;">
+            <div class="glass-toolbar">
+              <h4 style="margin:0;">◉ 用户管理</h4>
+              <el-button size="small" icon="el-icon-refresh" @click="loadUsers">刷新</el-button>
+            </div>
+            <el-table :data="users" stripe v-loading="userLoading" size="small" class="dark-table">
+              <el-table-column prop="id" label="ID" width="60"></el-table-column>
+              <el-table-column prop="username" label="用户名" width="130"></el-table-column>
+              <el-table-column prop="email" label="邮箱" min-width="180"></el-table-column>
+              <el-table-column prop="role" label="角色" width="90">
+                <template slot-scope="s">
+                  <el-tag :type="s.row.role === 'banned' ? 'danger' : s.row.role === 'analyst' ? 'success' : 'info'"
+                          size="mini">{{ s.row.role }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="login_count" label="登录" width="60"></el-table-column>
+              <el-table-column prop="created_at" label="注册时间" width="160">
+                <template slot-scope="s">{{ fmt(s.row.created_at) }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="130">
+                <template slot-scope="s">
+                  <el-button type="text" size="mini" @click="openUserDialog(s.row)">编辑</el-button>
+                  <el-button type="text" size="mini" class="del-btn" @click="delUser(s.row.id)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-pagination style="margin-top:16px;text-align:right" background
+              :current-page="userPage" :page-size="20" :total="userTotal"
+              layout="total,prev,pager,next" @current-change="loadUsers"></el-pagination>
+          </div>
+
+          <el-dialog title="编辑用户" :visible.sync="userDlg" width="460px">
+            <el-form :model="userForm" label-width="80px" size="small">
+              <el-form-item label="用户名">
+                <el-input v-model="userForm.username"></el-input>
+              </el-form-item>
+              <el-form-item label="邮箱">
+                <el-input v-model="userForm.email"></el-input>
+              </el-form-item>
+              <el-form-item label="角色">
+                <el-select v-model="userForm.role" style="width:100%">
+                  <el-option label="分析师" value="analyst"></el-option>
+                  <el-option label="观察者" value="viewer"></el-option>
+                  <el-option label="封禁" value="banned"></el-option>
+                </el-select>
+              </el-form-item>
+            </el-form>
+            <span slot="footer">
+              <el-button @click="userDlg = false">取消</el-button>
+              <el-button type="primary" @click="saveUser" :loading="userSaving">保存</el-button>
+            </span>
+          </el-dialog>
+        </section>
+
+        <!-- ===== 案例管理 ===== -->
+        <section v-if="currentView === 'cases'" class="view-panel">
+          <div class="glass-card" style="margin-bottom:0;">
+            <div class="glass-toolbar">
+              <h4 style="margin:0;">◆ 案例管理</h4>
+              <div style="display:flex;gap:8px;">
+                <el-input v-model="caseSearch" placeholder="搜索…" size="small"
+                          style="width:180px" clearable @clear="loadCases"
+                          @keyup.enter.native="loadCases"></el-input>
+                <el-select v-model="caseFilterType" size="small" placeholder="类型"
+                           clearable style="width:120px" @change="loadCases">
+                  <el-option label="冒充客服" value="冒充客服"></el-option>
+                  <el-option label="虚假投资" value="虚假投资"></el-option>
+                  <el-option label="冒充公检法" value="冒充公检法"></el-option>
+                  <el-option label="信贷诈骗" value="信贷诈骗"></el-option>
+                  <el-option label="正常" value="正常"></el-option>
+                </el-select>
+                <el-button type="primary" size="small" icon="el-icon-plus"
+                           @click="openCaseDialog()">新增</el-button>
+                <el-button size="small" icon="el-icon-upload2"
+                           @click="openImportDialog">批量导入</el-button>
+                <el-button size="small" icon="el-icon-refresh" @click="loadCases">刷新</el-button>
+              </div>
+            </div>
+            <el-table :data="cases" stripe v-loading="caseLoading" size="small" class="dark-table">
+              <el-table-column prop="id" label="ID" width="60"></el-table-column>
+              <el-table-column prop="text" label="文本" min-width="260" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="fraud_type" label="类型" width="100">
+                <template slot-scope="s">
+                  <el-tag :type="tagType(s.row.fraud_type)" size="mini">{{ s.row.fraud_type }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="risk_level" label="等级" width="80">
+                <template slot-scope="s">
+                  <el-tag :type="lvlTag(s.row.risk_level)" size="mini">{{ s.row.risk_level }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="risk_score" label="评分" width="60"></el-table-column>
+              <el-table-column prop="is_active" label="训练" width="80">
+                <template slot-scope="s">
+                  <el-switch v-model="s.row.is_active" @change="toggleCaseActive(s.row)"
+                             active-color="#00ff66" inactive-color="#555"></el-switch>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="150">
+                <template slot-scope="s">
+                  <el-button type="text" size="mini" @click="openCaseDialog(s.row)">编辑</el-button>
+                  <el-button type="text" size="mini" class="del-btn"
+                             @click="delCase(s.row.id)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <el-pagination style="margin-top:16px;text-align:right" background
+              :current-page="casePage" :page-size="20" :total="caseTotal"
+              layout="total,prev,pager,next" @current-change="loadCases"></el-pagination>
+          </div>
+
+          <el-dialog :title="caseDlgTitle" :visible.sync="caseDlg" width="640px" top="5vh">
+            <el-form :model="caseForm" label-width="80px" size="small">
+              <el-form-item label="文本">
+                <el-input v-model="caseForm.text" type="textarea" rows="4"></el-input>
+              </el-form-item>
+              <el-form-item label="欺诈类型">
+                <el-select v-model="caseForm.fraud_type" style="width:100%">
+                  <el-option v-for="t in ['冒充客服','虚假投资','冒充公检法','信贷诈骗','正常']"
+                             :key="t" :label="t" :value="t"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="风险等级">
+                <el-select v-model="caseForm.risk_level" style="width:100%">
+                  <el-option label="低风险" value="low"></el-option>
+                  <el-option label="中风险" value="medium"></el-option>
+                  <el-option label="高风险" value="high"></el-option>
+                  <el-option label="极高风险" value="critical"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="风险评分">
+                <el-input-number v-model="caseForm.risk_score"
+                                 :min="0" :max="1" :step="0.01"></el-input-number>
+              </el-form-item>
+              <el-form-item label="分析标注">
+                <el-input v-model="caseForm.analysis" type="textarea" rows="3"></el-input>
+              </el-form-item>
+              <el-form-item label="标签">
+                <el-input v-model="caseForm.tags" placeholder="逗号分隔"></el-input>
+              </el-form-item>
+              <el-form-item label="启用训练">
+                <el-switch v-model="caseForm.is_active"></el-switch>
+              </el-form-item>
+            </el-form>
+            <span slot="footer">
+              <el-button @click="caseDlg = false">取消</el-button>
+              <el-button type="primary" @click="saveCase" :loading="caseSaving">保存</el-button>
+            </span>
+          </el-dialog>
+        </section>
+
+        <!-- ===== 模型训练（流水线） ===== -->
+        <section v-if="currentView === 'model'" class="view-panel">
+
+          <!-- 当前状态条 -->
+          <div class="glass-card train-head">
+            <div class="train-head-left">
+              <el-tag :type="trainTagType" size="small">{{ trainStateText }}</el-tag>
+              <span class="train-meta" v-if="train.step">步骤：{{ stepLabel(train.step) }}</span>
+              <span class="train-meta" v-if="train.started_at">开始：{{ train.started_at }}</span>
+              <span class="train-meta" v-if="train.running">已运行 {{ elapsedText }}</span>
+              <span class="train-meta" v-if="train.finished_at">结束：{{ train.finished_at }}</span>
+            </div>
+            <div class="train-head-right">
+              <span class="train-meta">基座：{{ modelInfo.base_model }}</span>
+              <el-button v-if="train.running" type="danger" size="small" plain
+                         icon="el-icon-video-pause" @click="stopTrain">停止</el-button>
+            </div>
+          </div>
+
+          <!-- 四步流水线 -->
+          <div class="pipe-grid">
+            <div class="pipe-step" v-for="(s, i) in pipeline" :key="s.step"
+                 :class="{ active: train.step === s.step && train.running, done: stepDone(s.step), failed: train.step === s.step && train.state === 'failed' }">
+              <div class="pipe-index">{{ i + 1 }}</div>
+              <div class="pipe-body">
+                <div class="pipe-title">{{ s.title }}</div>
+                <div class="pipe-desc">{{ s.desc }}</div>
+                <div class="pipe-foot">
+                  <el-button size="mini" :type="s.step === 'finetune' ? 'primary' : 'default'"
+                             :disabled="train.running" :loading="train.running && train.step === s.step"
+                             @click="startStep(s.step)">{{ s.action }}</el-button>
+                  <span class="pipe-state">{{ stepStateText(s.step) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 训练参数 + 进度 -->
+          <div class="glass-row">
+            <div class="glass-card flex1">
+              <h4>⚙ 微调参数</h4>
+              <div class="param-row">
+                <span class="param-label">训练轮数 epochs</span>
+                <el-input-number v-model="trainForm.epochs" :min="1" :max="30" size="small"></el-input-number>
+              </div>
+              <div class="param-row">
+                <span class="param-label">基座模型</span>
+                <el-input v-model="trainForm.model" size="small" placeholder="留空使用脚本默认（本地 Qwen2.5-3B）"></el-input>
+              </div>
+              <p class="hint-line">
+                当前训练集 {{ dataset.generated ? dataset.generated.train : 0 }} 条 / 验证集 {{ dataset.generated ? dataset.generated.val : 0 }} 条。
+                样本 &lt; 200 条时指标不可信，建议先在「训练数据」页补充案例。
+              </p>
+            </div>
+
+            <div class="glass-card flex1">
+              <h4>📈 运行进度</h4>
+              <div class="progress-bar" style="height:10px;">
+                <div class="progress-fill"
+                     :style="{ width: (train.progress && train.progress.percent != null ? train.progress.percent : (train.running ? 8 : 0)) + '%' }"></div>
+              </div>
+              <div class="gc-rows" style="margin-top:12px;">
+                <span>阶段 <b>{{ train.progress && train.progress.stage ? train.progress.stage + '/5' : '—' }}</b></span>
+                <span>进度 <b>{{ train.progress && train.progress.percent != null ? train.progress.percent + '%' : '—' }}</b></span>
+                <span>退出码 <b>{{ train.returncode != null ? train.returncode : '—' }}</b></span>
+              </div>
+              <p class="hint-line">进度从训练日志的进度条解析；解析不到时显示"—"（不编造百分比）。</p>
+            </div>
+          </div>
+
+          <!-- 日志 -->
+          <div class="glass-card" style="margin-top:14px;">
+            <div class="glass-toolbar">
+              <h4 style="margin:0;">🖥 训练日志</h4>
+              <el-button size="mini" icon="el-icon-refresh" @click="refreshTrainStatus">刷新</el-button>
+              <el-button size="mini" icon="el-icon-download" @click="downloadTrainLog"
+                         :disabled="!train.log_file">导出日志</el-button>
+              <span class="hint-line" style="margin:0 0 0 auto;">{{ train.log_file ? train.log_file.split('\\').pop() : '暂无日志' }}</span>
+            </div>
+            <pre class="log-console" ref="logConsole">{{ trainLog || '（暂无日志，运行任一训练步骤后会实时显示）' }}</pre>
+          </div>
+
+          <!-- 模型版本 -->
+          <div class="glass-card" style="margin-top:14px;">
+            <div class="glass-toolbar">
+              <h4 style="margin:0;">🧠 模型版本</h4>
+              <el-button size="mini" icon="el-icon-refresh" @click="loadModels">刷新</el-button>
+              <el-button size="mini" type="warning" plain :disabled="!models.length" @click="deactivateModel">停用微调模型</el-button>
+              <span class="hint-line" style="margin:0 0 0 auto;">
+                当前生效：{{ modelsState.active_path || '—' }}（{{ modelsState.model_loaded ? '已加载到显存' : '未加载' }}）
+              </span>
+            </div>
+            <el-table :data="models" stripe size="small" class="dark-table" empty-text="还没有评测过的模型版本">
+              <el-table-column prop="version_name" label="版本" width="150"></el-table-column>
+              <el-table-column label="类型准确率" width="100">
+                <template slot-scope="s">{{ s.row.accuracy != null ? (s.row.accuracy * 100).toFixed(1) + '%' : '—' }}</template>
+              </el-table-column>
+              <el-table-column label="等级准确率" width="100">
+                <template slot-scope="s">{{ s.row.risk_level_accuracy != null ? (s.row.risk_level_accuracy * 100).toFixed(1) + '%' : '—' }}</template>
+              </el-table-column>
+              <el-table-column label="MAE" width="80">
+                <template slot-scope="s">{{ s.row.metrics && s.row.metrics.score_mae != null ? s.row.metrics.score_mae : '—' }}</template>
+              </el-table-column>
+              <el-table-column prop="train_samples" label="样本" width="70"></el-table-column>
+              <el-table-column prop="trained_at" label="评测时间" width="160"></el-table-column>
+              <el-table-column label="状态" width="90">
+                <template slot-scope="s">
+                  <el-tag v-if="s.row.is_active" type="success" size="mini">使用中</el-tag>
+                  <el-tag v-else-if="!s.row.exists" type="danger" size="mini">文件丢失</el-tag>
+                  <el-tag v-else type="info" size="mini">未启用</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="150">
+                <template slot-scope="s">
+                  <el-button type="text" size="mini" :disabled="!s.row.exists || s.row.is_active"
+                             @click="activateModel(s.row)">启用</el-button>
+                  <el-button type="text" size="mini" class="del-btn" :disabled="s.row.is_active"
+                             @click="delModel(s.row)">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <p class="hint-line">
+              「启用」会把该版本热加载进后端（3B 模型约需 30–60 秒，后台加载不阻塞接口），
+              之后检测会同时使用微调模型 + DeepSeek；指标为 0% 说明模型还没学会，继续补数据。
+            </p>
+          </div>
+        </section>
+
+        <!-- ===== 系统监控 ===== -->
+        <section v-if="currentView === 'system'" class="view-panel">
+          <div class="glass-grid four" style="margin-bottom:14px;">
+            <div class="glass-card">
+              <h4>CPU</h4>
+              <p class="gc-big"
+                 :class="sysInfo.server && sysInfo.server.cpu_percent > 80 ? 'r' : 'blue'">
+                {{ sysInfo.server ? sysInfo.server.cpu_percent : '--' }}%
+              </p>
+            </div>
+            <div class="glass-card">
+              <h4>内存</h4>
+              <p class="gc-big"
+                 :class="sysInfo.server && sysInfo.server.memory_percent > 80 ? 'r' : 'blue'">
+                {{ sysInfo.server ? sysInfo.server.memory_percent : '--' }}%
+              </p>
+            </div>
+            <div class="glass-card">
+              <h4>磁盘</h4>
+              <p class="gc-big">{{ sysInfo.server ? sysInfo.server.disk_percent : '--' }}%</p>
+            </div>
+            <div class="glass-card">
+              <h4>数据库</h4>
+              <p style="font-size:18px;font-weight:700;">
+                {{ sysInfo.database ? sysInfo.database.size_kb : '--' }} KB
+              </p>
+              <p>{{ sysInfo.database ? sysInfo.database.type : '--' }}</p>
+            </div>
+          </div>
+          <div class="glass-card" style="margin-bottom:14px;">
+            <h4 style="margin-bottom:12px;">🔑 API Key 管理</h4>
+            <el-table :data="apiKeys" stripe size="small" class="dark-table">
+              <el-table-column prop="id" label="ID" width="50"></el-table-column>
+              <el-table-column prop="username" label="用户" width="100"></el-table-column>
+              <el-table-column prop="api_key" label="API Key" min-width="200">
+                <template slot-scope="s">
+                  <span v-if="s.row.api_key" style="font-family:monospace;font-size:11px;">{{ s.row.api_key.substring(0,16) }}...</span>
+                  <span v-else style="color:var(--text-dim)">未设置</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="80">
+                <template slot-scope="s">
+                  <el-button type="text" size="mini" @click="editApiKey(s.row)">编辑</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div class="glass-card">
+            <h4 style="margin-bottom:12px;">📋 检测日志</h4>
+            <el-table :data="logs" stripe v-loading="logLoading" size="small" class="dark-table">
+              <el-table-column prop="id" label="ID" width="60"></el-table-column>
+              <el-table-column prop="input_text" label="输入文本" min-width="240"
+                               show-overflow-tooltip></el-table-column>
+              <el-table-column prop="risk_score" label="评分" width="60"></el-table-column>
+              <el-table-column prop="fraud_type" label="类型" width="100"></el-table-column>
+              <el-table-column prop="model_used" label="模型" width="90"></el-table-column>
+              <el-table-column prop="latency_ms" label="耗时" width="70">
+                <template slot-scope="s">{{ s.row.latency_ms }}ms</template>
+              </el-table-column>
+              <el-table-column prop="created_at" label="时间" width="160">
+                <template slot-scope="s">{{ fmt(s.row.created_at) }}</template>
+              </el-table-column>
+            </el-table>
+            <el-pagination style="margin-top:16px;text-align:right" background
+              :current-page="logPage" :page-size="20" :total="logTotal"
+              layout="total,prev,pager,next" @current-change="loadLogs"></el-pagination>
+          </div>
+        </section>
+
+      </main>
+    </div><!-- /admin-shell -->
+
+    <!-- 批量导入案例弹窗 -->
+    <el-dialog title="批量导入案例（会进入训练集）" :visible.sync="importDlg" width="680px" top="6vh">
+      <p class="hint-line" style="margin-bottom:8px;">
+        粘贴 <b>JSONL</b>（每行一个 JSON）或 <b>JSON 数组</b>；字段：
+        <code>text</code>（必填）、<code>fraud_type</code>、<code>risk_level</code>(low/medium/high/critical)、<code>risk_score</code>、<code>analysis</code>。
+        导入后默认「启用训练」。
+      </p>
+      <el-input v-model="importText" type="textarea" rows="10"
+                placeholder='{"text":"您好，我是XX客服…","fraud_type":"冒充客服","risk_level":"high","risk_score":0.85}'></el-input>
+      <div class="glass-toolbar" style="margin-top:10px;">
+        <el-button size="mini" @click="fillImportSample">填入示例</el-button>
+        <span class="hint-line" style="margin:0 0 0 auto;">解析到 {{ importParsed }} 条</span>
+      </div>
+      <span slot="footer">
+        <el-button @click="importDlg = false">取消</el-button>
+        <el-button type="primary" :loading="importing" @click="doImport">导入</el-button>
+      </span>
+    </el-dialog>
+
+    <!-- API Key 编辑弹窗 -->
+    <el-dialog title="编辑 API Key" :visible.sync="apiKeyDlg" width="480px">
+      <el-form :model="apiKeyForm" label-width="80px" size="small">
+        <el-form-item label="API Key">
+          <el-input v-model="apiKeyForm.api_key" placeholder="sk-xxxxxxxx"></el-input>
+        </el-form-item>
+        <p style="color:var(--text-dim);font-size:12px;margin-top:4px;">
+          系统使用自己的垂直模型，API Key 仅供管理员配置，普通用户无需提供。
+        </p>
+      </el-form>
+      <span slot="footer">
+        <el-button @click="apiKeyDlg = false">取消</el-button>
+        <el-button type="primary" @click="saveApiKey">保存</el-button>
+      </span>
+    </el-dialog>
+  </div>
+</div>
+
+<script src="js/vendor/vue.min.js?v=20261023c"></script>
+<script src="js/vendor/element-ui.min.js?v=20261023c"></script>
+<script src="js/admin.js?v=20261023c"></script>
+<script src="js/zoom-hint.js?v=20261023c"></script>
+</body>
+</html>
