@@ -1,0 +1,37 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "全栈启动",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://127.0.0.1:5173/",
+      "runtimeExecutable": "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+      "webRoot": "${workspaceFolder}/financial-fraud-detector/frontend/vue3",
+      "preLaunchTask": "启动全栈",
+      "sourceMaps": true,
+      "timeout": 60000
+    },
+    {
+      "name": "仅后端（uvicorn 热重载）",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["main:app", "--reload", "--port", "8000", "--host", "127.0.0.1"],
+      "cwd": "${workspaceFolder}/financial-fraud-detector/frontend/backend",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "python": "D:\\Python39\\python.exe"
+    },
+    {
+      "name": "旧静态版（3000）",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "http.server",
+      "args": ["3000"],
+      "cwd": "${workspaceFolder}/financial-fraud-detector/frontend",
+      "console": "integratedTerminal",
+      "python": "D:\\Python39\\python.exe"
+    }
+  ]
+}

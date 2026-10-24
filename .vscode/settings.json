@@ -1,0 +1,24 @@
+{
+  "python.defaultInterpreterPath": "D:\\Python39\\python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}/financial-fraud-detector/frontend/backend"
+  ],
+  "python.terminal.activateEnvironment": false,
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/__pycache__": true,
+    "**/.git": false
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/vue3-dist": true,
+    "**/vendor": true,
+    "**/*.min.js": true,
+    "**/china.json": true,
+    "**/world.json": true
+  },
+  "files.associations": {
+    "*.vue": "vue"
+  },
+  "terminal.integrated.defaultProfile.windows": "PowerShell"
+}

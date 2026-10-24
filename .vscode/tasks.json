@@ -1,0 +1,90 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "准备: 清理端口 (8000/5173/3000)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "8000,5173,3000 | ForEach-Object { $p=$_; Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; Write-Host \"已停止端口 $p 的进程 $_\" } }; Write-Host '端口清理完成'"
+      ],
+      "problemMatcher": [],
+      "presentation": { "group": "stack", "panel": "shared", "reveal": "silent", "close": true }
+    },
+    {
+      "label": "后端: uvicorn (8000)",
+      "type": "shell",
+      "command": "D:\\Python39\\python.exe -m uvicorn main:app --port 8000 --host 0.0.0.0",
+      "options": {
+        "cwd": "${workspaceFolder}/financial-fraud-detector/frontend/backend"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "uvicorn",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Uvicorn running on"
+        }
+      },
+      "presentation": { "group": "stack", "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "前端: vite (5173)",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": {
+        "cwd": "${workspaceFolder}/financial-fraud-detector/frontend/vue3"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "vite",
+        "pattern": { "regexp": "^$" },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Local:.*http"
+        }
+      },
+      "presentation": { "group": "stack", "panel": "dedicated", "reveal": "always" }
+    },
+    {
+      "label": "启动全栈",
+      "dependsOrder": "sequence",
+      "dependsOn": ["准备: 清理端口 (8000/5173/3000)", "后端: uvicorn (8000)", "前端: vite (5173)"],
+      "problemMatcher": []
+    },
+    {
+      "label": "安装前端依赖 (npm install)",
+      "type": "shell",
+      "command": "npm install --no-audit --no-fund",
+      "options": {
+        "cwd": "${workspaceFolder}/financial-fraud-detector/frontend/vue3"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "构建前端 (vue3 → vue3-dist)",
+      "type": "shell",
+      "command": "npm run build",
+      "options": {
+        "cwd": "${workspaceFolder}/financial-fraud-detector/frontend/vue3"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "停止全部服务 (3000 / 5173 / 8000)",
+      "type": "shell",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-Command",
+        "8000,5173,3000 | ForEach-Object { $p=$_; Get-NetTCPConnection -State Listen -LocalPort $p -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue; Write-Host \"已停止端口 $p 的进程 $_\" } }"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
