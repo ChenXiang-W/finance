@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import RiskScale from './RiskScale.vue'
 import DimensionBars from './DimensionBars.vue'
 import { engineUsedName, fmtScore, fmtWhen, pillClass, riskTier, tierText } from '../utils/format'
 
@@ -31,6 +30,13 @@ const suggestions = computed(() => props.report.suggestions || [])
 const confidence = computed(() =>
   ri.value.confidence != null ? Math.round(ri.value.confidence * 100) + '%' : '-',
 )
+
+const metaText = computed(() => {
+  const parts = [engineUsedName(ri.value.engine_used)]
+  if (ri.value.latency_ms != null) parts.push(`耗时 ${(ri.value.latency_ms / 1000).toFixed(1)}s`)
+  parts.push(fmtWhen(ri.value.detected_at || props.report.generated_at))
+  return parts.join(' · ')
+})
 
 const batchRows = computed(() => {
   const rows = props.report.rows || []
@@ -89,7 +95,7 @@ function rowTier(r) {
       <span v-if="report.demo" class="pill">示例数据</span>
       <span class="spacer"></span>
       <span class="mono report-id">{{ report.report_id || '-' }}</span>
-      <span class="mono report-id">{{ fmtWhen(ri.detected_at || report.generated_at) }}</span>
+      <span class="mono report-id">{{ metaText }}</span>
     </div>
 
     <div class="lead">
@@ -100,7 +106,6 @@ function rowTier(r) {
         </div>
         <div class="lead-meta">{{ failed ? '未产生评分' : '置信度 ' + confidence }}</div>
       </div>
-      <RiskScale :score="failed ? null : ri.risk_score" title="风险刻度" />
     </div>
 
     <div class="report-cols">

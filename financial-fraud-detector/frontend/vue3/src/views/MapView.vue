@@ -1,5 +1,5 @@
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import * as echarts from 'echarts'
 import { detectApi } from '../api'
 
@@ -153,6 +153,11 @@ function closeProvince() {
   province.open = false
 }
 
+/** 省份是否真有情报数据：全 0 且无类型/案件时显示"暂无情报"，不摆一排假 0 */
+const hasIntel = computed(() =>
+  province.stats.some((s) => (s.value || 0) > 0) || province.bars.length > 0 || province.cases.length > 0,
+)
+
 /* ---------------- 数据 ---------------- */
 async function loadFeed() {
   try {
@@ -276,7 +281,7 @@ onBeforeUnmount(() => {
             <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" />
           </svg>
         </router-link>
-        <router-link to="/admin" class="home-btn-ghost">管理后台</router-link>
+        <!-- 管理后台入口已去重：左侧导航栏底部常驻 -->
       </div>
 
       <div class="home-divider"></div>
@@ -303,8 +308,9 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <!-- 省份详情浮层 -->
-    <aside class="province-sidebar" :class="{ open: province.open }" :style="{ display: province.open ? 'flex' : 'none' }">
+    <!-- 省份详情浮层：显示/隐藏完全由 .open 类的 transform 控制（home.css），
+         不能绑 display:flex —— flex 横排会把标题/统计挤成一根根竖条 -->
+    <aside class="province-sidebar" :class="{ open: province.open }">
       <div class="ps-header">
         <button class="ps-back" @click="closeProvince">← 返回</button>
         <h3>{{ province.name }}</h3>
@@ -313,24 +319,27 @@ onBeforeUnmount(() => {
           :style="RISK_PILL[province.risk] ? { background: RISK_PILL[province.risk][0], color: RISK_PILL[province.risk][1] } : {}"
         >{{ province.risk }}</span>
       </div>
-      <div class="ps-stats">
-        <div v-for="s in province.stats" :key="s.label" class="ps-stat">
-          <b>{{ s.value }}</b><span>{{ s.label }}</span>
+      <template v-if="hasIntel">
+        <div class="ps-stats">
+          <div v-for="s in province.stats" :key="s.label" class="ps-stat">
+            <b>{{ s.value }}</b><span>{{ s.label }}</span>
+          </div>
         </div>
-      </div>
-      <div class="ps-desc">{{ province.desc }}</div>
-      <h4>欺诈类型分布</h4>
-      <div class="ps-bars">
-        <div v-for="(b, i) in province.bars" :key="i" class="ps-bar-row">
-          <span class="ps-bar-label">{{ b.type }}</span>
-          <div class="ps-bar-track"><div class="ps-bar-fill" :style="{ width: b.pct + '%', background: b.color }"></div></div>
-          <span class="ps-bar-pct">{{ b.pct }}%</span>
+        <div class="ps-desc">{{ province.desc }}</div>
+        <h4>欺诈类型分布</h4>
+        <div class="ps-bars">
+          <div v-for="(b, i) in province.bars" :key="i" class="ps-bar-row">
+            <span class="ps-bar-label">{{ b.type }}</span>
+            <div class="ps-bar-track"><div class="ps-bar-fill" :style="{ width: b.pct + '%', background: b.color }"></div></div>
+            <span class="ps-bar-pct">{{ b.pct }}%</span>
+          </div>
         </div>
-      </div>
-      <h4>近期案件</h4>
-      <div class="ps-cases">
-        <div v-for="(c, i) in province.cases" :key="i" class="ps-case">{{ c }}</div>
-      </div>
+        <h4>近期案件</h4>
+        <div class="ps-cases">
+          <div v-for="(c, i) in province.cases" :key="i" class="ps-case">{{ c }}</div>
+        </div>
+      </template>
+      <div v-else class="ps-desc">该省份暂无情报数据。<br />情报覆盖全国主要诈骗高发省份，其余地区数据持续接入中。</div>
     </aside>
   </div>
 </template>

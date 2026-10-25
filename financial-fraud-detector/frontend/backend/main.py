@@ -59,6 +59,20 @@ def on_startup():
     except Exception as e:
         print("[启动] 读取激活模型失败:", e)
 
+    # 后台预热：4-bit 模型加载要 60-90 秒，放到启动阶段悄悄做，
+    # 否则用户的第一次检测要顶着 1-2 分钟的等待（还会撞上前端超时）
+    import threading as _threading
+
+    def _warmup():
+        try:
+            from routers.detect import get_model
+            print("[预热] 后台加载微调模型…")
+            get_model()
+        except Exception as e:
+            print("[预热] 模型预热失败（首次检测时会重试）:", e)
+
+    _threading.Thread(target=_warmup, daemon=True).start()
+
 
 @app.get("/api/health")
 def health():

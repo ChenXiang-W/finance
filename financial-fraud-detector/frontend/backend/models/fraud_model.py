@@ -101,6 +101,20 @@ KNOWN_TYPES = [
 LEVEL_KEYWORDS = ["极高风险", "高风险", "中风险", "低风险"]
 LEVEL_SCORE = {"极高风险": 0.9, "高风险": 0.72, "中风险": 0.5, "低风险": 0.25}
 
+# 兜底推断用的关键词表：模型输出自由文本时，按命中情况推断类型与风险，
+# 比一律返回 "待人工复核 0.5" 有用得多（实测模型经常答对方向但格式不对）
+_TYPE_HINT_KEYWORDS = [
+    ("冒充客服", ["屏幕共享", "京东金条", "注销", "退款", "理赔", "备用金", "客服"]),
+    ("虚假投资", ["稳赚", "荐股", "内幕", "收益率", "老师带单", "操盘"]),
+    ("冒充公检法", ["安全账户", "公检法", "洗钱", "通缉", "警官", "案件"]),
+    ("刷单诈骗", ["刷单", "垫付", "兼职", "返利", "佣金"]),
+    ("信贷诈骗", ["贷款", "放款", "征信", "额度", "低息"]),
+    ("钓鱼链接", ["链接", "验证码", "ETC", "实名认证", "积分兑换"]),
+    ("虚假中奖", ["中奖", "奖品", "公证费", "幸运用户"]),
+]
+_FRAUD_HINT_WORDS = ["诈骗", "骗局", "虚假", "非法", "钓鱼", "诱导", "风险"]
+_SAFE_HINT_WORDS = ["正常", "无风险", "不是诈骗", "没有问题", "安全"]
+
 
 class FraudModel:
     def __init__(self, model_path: str):
@@ -249,11 +263,53 @@ class FraudModel:
             score = self._find_score({}, blob, level)
 
         if not fraud_type and not level:
+            # 兜底升级：从自由文本里按关键词推断类型与风险
+            type_hits = {}
+            for ftype, kws in _TYPE_HINT_KEYWORDS:
+                hit = sum(1 for k in kws if k in blob)
+                if hit:
+                    type_hits[ftype] = hit
+            fraud_hit = sum(1 for w in _FRAUD_HINT_WORDS if w in blob)
+            safe_hit = sum(1 for w in _SAFE_HINT_WORDS if w in blob)
+            guess = max(type_hits, key=type_hits.get) if type_hits else ""
+
+            if safe_hit > fraud_hit and not type_hits:
+                return {
+                    "risk_score": 0.1,
+                    "risk_level": "低风险",
+                    "fraud_type": "正常",
+                    "analysis": "模型输出为自由文本，按关键词推断为正常内容。（原始输出：%s）" % (text or "")[:200],
+                    "unparsed": True,
+                    "_raw": (text or "")[:300],
+                }
+            if guess or fraud_hit:
+                ftype = guess or "疑似诈骗"
+                score = round(min(0.5 + 0.1 * max(fraud_hit, 1) + 0.05 * sum(type_hits.values()), 0.85), 2)
+                level = "高风险" if score >= 0.6 else ("中风险" if score >= 0.4 else "低风险")
+                return {
+                    "risk_score": score,
+                    "risk_level": level,
+                    "fraud_type": ftype,
+                    "analysis": "模型输出为自由文本，已按关键词推断类型与风险，建议人工复核。（原始输出：%s）" % (text or "")[:200],
+                    "unparsed": True,
+                    "_raw": (text or "")[:300],
+                }
             return {
                 "risk_score": 0.5,
                 "risk_level": "疑似风险",
                 "fraud_type": "待人工复核",
                 "analysis": "微调模型输出不符合约定 JSON 格式，已按兜底值返回，建议人工复核。（原始输出：%s）" % (text or "")[:200],
+                "unparsed": True,
+                "_raw": (text or "")[:300],
+            }
+
+        if fraud_type == "正常" and not level:
+            # 模型答了「正常」但没给分值：给一致的 0.1/低风险，而不是 0.0 分配"中风险"
+            return {
+                "risk_score": 0.1,
+                "risk_level": "低风险",
+                "fraud_type": "正常",
+                "analysis": "模型输出为自由文本，推断为正常内容。（原始输出：%s）" % (text or "")[:200],
                 "unparsed": True,
                 "_raw": (text or "")[:300],
             }

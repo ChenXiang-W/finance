@@ -1,0 +1,24 @@
+{
+  "description": "金盾智眼小程序（检测 + 对话）",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.4.10",
+  "appid": "touristappid",
+  "projectname": "jindun-zhiyan-miniprogram",
+  "condition": {}
+}

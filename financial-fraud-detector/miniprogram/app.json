@@ -1,0 +1,14 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#070b14",
+    "navigationBarTextStyle": "white",
+    "navigationBarTitleText": "金盾智眼 · 反诈检测",
+    "backgroundColor": "#05080f",
+    "backgroundTextStyle": "dark"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

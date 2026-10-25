@@ -160,7 +160,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
             <button v-if="detect.report && !detect.report.batch" class="btn ghost sm" @click="exportReport">
               导出
             </button>
-            <router-link class="btn ghost sm" to="/history">历史</router-link>
+            <!-- 历史入口已去重：左侧导航栏常驻 -->
           </div>
         </header>
 

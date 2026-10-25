@@ -44,8 +44,9 @@ export function sessionId() {
 
 /* ---------------- 检测 / 情报 ---------------- */
 export const detectApi = {
+  // 冷启动首次检测要等模型加载（可达 1-2 分钟），单独放宽超时
   detect: (text, engine = 'auto') =>
-    http.post('/api/detect', { text, session_id: sessionId(), use_llm: true, engine }),
+    http.post('/api/detect', { text, session_id: sessionId(), use_llm: true, engine }, { timeout: 300000 }),
   fetchUrl: (url) => http.post('/api/fetch-url', { url }),
   // 本地对话首次要加载基座模型（可能 1-3 分钟），单独放宽超时到 5 分钟
   chat: (messages) => http.post('/api/chat', { messages }, { timeout: 300000 }),

@@ -89,24 +89,7 @@ onMounted(() => { if (session.online === null) session.checkHealth() })
       </div>
     </div>
 
-    <div class="block">
-      <div class="block-label">快捷操作</div>
-      <div class="quick">
-        <button class="quick-row" @click="detect.toggleBatch()">
-          <span>批量检测</span><span class="num">20</span>
-        </button>
-        <button class="quick-row" @click="detect.toggleUrl()">
-          <span>URL 抓取</span><span class="num">1</span>
-        </button>
-        <button class="quick-row" @click="router.push('/stats')">
-          <span>统计</span><span class="num">4</span>
-        </button>
-        <button class="quick-row" @click="router.push('/settings')">
-          <span>设置</span><span class="num"></span>
-        </button>
-      </div>
-    </div>
-
+    <!-- 批量/URL 开关在底部输入框的 chips 上，统计/设置在左侧导航栏 —— 不再重复放置 -->
     <footer class="threads-foot">
       <span class="dot" :class="online === false ? 'off' : 'on'"></span>
       <span class="hint">

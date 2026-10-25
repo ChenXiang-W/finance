@@ -1,0 +1,87 @@
+<view class="page">
+
+  <!-- 检测输入 -->
+  <view class="card">
+    <textarea
+      class="input"
+      value="{{text}}"
+      bindinput="onInput"
+      maxlength="10000"
+      placeholder="粘贴可疑短信 / 聊天记录 / 链接文案…"
+      placeholder-class="ph"
+      auto-height
+    />
+    <view class="row-between">
+      <text class="hint">{{ text.length }} / 10000</text>
+      <button class="btn-primary btn-detect" size="mini" loading="{{busy}}" disabled="{{busy}}" bindtap="detect">
+        {{ busy ? '分析中…' : '开始检测' }}
+      </button>
+    </view>
+    <text wx:if="{{error}}" class="error">{{error}}</text>
+  </view>
+
+  <!-- 检测报告 -->
+  <view class="card" wx:if="{{report}}">
+    <view class="row-between">
+      <view class="level-pill" style="background: {{report.levelBg}}; color: {{report.levelColor}};">{{report.level}}</view>
+      <text class="hint">{{report.engineText}} · {{report.latencyText}}</text>
+    </view>
+
+    <view class="score-row">
+      <text class="score">{{report.score}}</text>
+      <text class="score-of">/ 1.00</text>
+    </view>
+    <text class="hint">分类「{{report.category}}」 · 置信度 {{report.confidence}}</text>
+
+    <view class="dims">
+      <view class="dim" wx:for="{{report.dims}}" wx:key="category">
+        <text class="dim-label">{{item.category}}</text>
+        <view class="dim-track">
+          <view class="dim-fill" style="width: {{item.pct}}%; background: {{item.color}};"></view>
+        </view>
+        <text class="dim-val">{{item.text}}</text>
+      </view>
+    </view>
+
+    <view class="section">
+      <text class="section-title">初步诊断</text>
+      <text class="section-body">{{report.summary}}</text>
+    </view>
+
+    <view class="section" wx:if="{{report.suggestions.length}}">
+      <text class="section-title">防范建议</text>
+      <text class="section-body" wx:for="{{report.suggestions}}" wx:key="index">{{index + 1}}. {{item}}</text>
+    </view>
+  </view>
+
+  <!-- 对话 -->
+  <view class="card" wx:if="{{messages.length || typing}}">
+    <view class="section-title">智能体对话</view>
+    <scroll-view scroll-y class="chat" scroll-top="{{scrollTop}}" scroll-with-animation>
+      <view class="msg {{m.role === 'user' ? 'msg-user' : 'msg-model'}}" wx:for="{{messages}}" wx:key="index">
+        <text class="msg-head">{{m.role === 'user' ? '你' : '智能体'}}</text>
+        <view class="msg-body">{{m.content}}</view>
+      </view>
+      <view class="msg msg-model" wx:if="{{typing}}">
+        <text class="msg-head">智能体</text>
+        <view class="msg-body typing">分析中…</view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 对话输入 -->
+  <view class="chat-input-bar" wx:if="{{report}}">
+    <input
+      class="chat-input"
+      value="{{chatText}}"
+      bindinput="onChatInput"
+      confirm-type="send"
+      bindconfirm="send"
+      placeholder="追问智能体，例如：被骗了怎么办"
+      placeholder-class="ph"
+    />
+    <button class="btn-primary btn-send" size="mini" loading="{{typing}}" disabled="{{typing}}" bindtap="send">发送</button>
+  </view>
+
+  <view class="footer-space"></view>
+</view>

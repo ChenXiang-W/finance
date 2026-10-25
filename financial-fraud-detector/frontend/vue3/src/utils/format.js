@@ -42,10 +42,12 @@ export function engineUsedName(used) {
   return { deepseek: 'DeepSeek 深度分析', finetuned: '本地微调模型', none: '无可用引擎' }[used] || '无可用引擎'
 }
 
-/** 智能体回复的极简 Markdown：转义后只放开 **粗体** 与换行 */
+/** 智能体回复的极简 Markdown：转义后只放开 **粗体** 与换行；
+ *  同时屏蔽 DeepSeek 字样（小模型被问到时会复述，产品上不希望出现） */
 export function fmtAgentText(text) {
   if (!text) return ''
   const escaped = String(text)
+    .replace(/deepseek/gi, '其他AI助手')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

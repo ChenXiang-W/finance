@@ -22,11 +22,21 @@ $py   = 'D:\Python39\python.exe'
 }
 Write-Host '[1/3] 端口 8000/5173/3000 已清理'
 
-# ---- 2/3 拉起后端（独立最小化窗口，日志在窗口里可点开看）----
-Start-Process -FilePath $py `
-    -ArgumentList '-m', 'uvicorn', 'main:app', '--port', '8000', '--host', '127.0.0.1' `
+# ---- 2/3 拉起后端（独立最小化窗口；stdout 同时写入日志文件，便于事后排查）----
+$logDir = Join-Path $PSScriptRoot 'logs'
+New-Item -ItemType Directory -Path $logDir -Force | Out-Null
+# 只保留最近 5 份日志
+Get-ChildItem $logDir -Filter '*.log' -ErrorAction SilentlyContinue |
+    Sort-Object LastWriteTime -Descending | Select-Object -Skip 5 |
+    Remove-Item -Force -ErrorAction SilentlyContinue
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$backendLog = Join-Path $logDir "backend-$stamp.log"
+$viteLog = Join-Path $logDir "vite-$stamp.log"
+
+Start-Process -FilePath 'cmd.exe' `
+    -ArgumentList "/c $py -m uvicorn main:app --port 8000 --host 127.0.0.1 >> $backendLog 2>&1" `
     -WorkingDirectory $be -WindowStyle Minimized
-Write-Host '[2/3] 后端 uvicorn 启动中…'
+Write-Host "[2/3] 后端 uvicorn 启动中…（日志: .vscode/logs/backend-$stamp.log）"
 
 # ---- 3/3 拉起前端 vite ----
 if (-not (Test-Path (Join-Path $vue3 'node_modules'))) {
@@ -34,9 +44,9 @@ if (-not (Test-Path (Join-Path $vue3 'node_modules'))) {
     Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'npm install --no-audit --no-fund' `
         -WorkingDirectory $vue3 -WindowStyle Minimized -Wait
 }
-Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'npm run dev' `
+Start-Process -FilePath 'cmd.exe' -ArgumentList "/c npm run dev >> $viteLog 2>&1" `
     -WorkingDirectory $vue3 -WindowStyle Minimized
-Write-Host '[3/3] 前端 vite 启动中…'
+Write-Host "[3/3] 前端 vite 启动中…（日志: .vscode/logs/vite-$stamp.log）"
 
 # ---- 等待两个端口就绪（总预算约 48s，小于 launch.json 的 90s 超时）----
 function Wait-Port([int]$port, [string]$name) {

@@ -317,6 +317,9 @@ def unload_model():
     return True
 
 
+_model_lock = threading.Lock()   # 首次加载加锁：并发检测只允许创建一个模型实例
+
+
 def get_model(force=False):
     global _fraud_model, _model_load_error
     if not config.USE_FINETUNED:
@@ -324,26 +327,31 @@ def get_model(force=False):
     if _fraud_model is not None and not force:
         return _fraud_model
 
-    path = current_model_path()
-    # 负缓存：同一个路径失败过就不再重试，避免每次检测都卡住
-    if _model_load_error and _model_load_error[0] == path and not force:
-        return None
+    with _model_lock:
+        # 双重检查：拿到锁后再看一眼，避免两个并发请求各加载一份
+        if _fraud_model is not None and not force:
+            return _fraud_model
 
-    # 先判目录：目录不存在就直接返回，**不导入 torch/transformers**（首次导入约 20s）
-    if not os.path.isdir(path):
-        _model_load_error = (path, "微调模型目录不存在: %s" % path)
-        return None
+        path = current_model_path()
+        # 负缓存：同一个路径失败过就不再重试，避免每次检测都卡住
+        if _model_load_error and _model_load_error[0] == path and not force:
+            return None
 
-    try:
-        from models.fraud_model import FraudModel
-        _fraud_model = FraudModel(path)
-        _model_load_error = None
-        print("[模型] 已加载微调模型:", path)
-    except Exception as e:
-        _model_load_error = (path, str(e))
-        _fraud_model = None
-        print("[模型] 加载失败:", e)
-    return _fraud_model
+        # 先判目录：目录不存在就直接返回，**不导入 torch/transformers**（首次导入约 20s）
+        if not os.path.isdir(path):
+            _model_load_error = (path, "微调模型目录不存在: %s" % path)
+            return None
+
+        try:
+            from models.fraud_model import FraudModel
+            _fraud_model = FraudModel(path)
+            _model_load_error = None
+            print("[模型] 已加载微调模型:", path)
+        except Exception as e:
+            _model_load_error = (path, str(e))
+            _fraud_model = None
+            print("[模型] 加载失败:", e)
+        return _fraud_model
 
 
 def call_deepseek(text: str) -> dict:
@@ -728,9 +736,29 @@ def detect(req: DetectRequest, db: Session = Depends(get_db)):
             score_f = float(score)
         except (TypeError, ValueError):
             score_f = 0.0
-        summary = (llm_result.get("summary")
-                   or ("已由本地微调模型完成离线分析：判定为「%s」，风险评分 %.2f。"
-                       "（未配置 DeepSeek，建议配置后获得更详细的六维分析）" % (category, score_f)))
+        if not llm_result or llm_failed:
+            # 纯本地模式 / DeepSeek 失败：诊断文案带上引擎、结论与最突出的维度。
+            # 注意不要出现"建议配置 DeepSeek"之类的话术 —— 这段摘要会进对话的系统提示词，
+            # 小模型会鹦鹉学舌地把它复述给用户
+            verdict = category if category not in ("待人工复核", "分析中", "未分类") else "疑似风险文本"
+            top2 = sorted(risk_factors, key=lambda f: float(f.get("score") or 0), reverse=True)[:2]
+            top_str = "、".join(
+                "%s %.2f" % (f.get("category"), float(f.get("score") or 0)) for f in top2
+            ) if top2 else "暂无"
+            summary = ("本地引擎离线分析完成：判定为「%s」，风险评分 %.2f（维度参考：%s）。"
+                       "以上结果仅供参考。" % (verdict, score_f, top_str))
+        else:
+            summary = llm_result.get("summary") or ""
+
+    # 置信度按实际引擎如实标注，不再一律写 0.85
+    if no_engine:
+        confidence = 0.0
+    elif llm_result and not llm_failed:
+        confidence = 0.85
+    elif finetuned_result and not finetuned_result.get("unparsed"):
+        confidence = 0.7
+    else:
+        confidence = 0.45   # 兜底推断/待人工复核的结果，可信度就是低
 
     resp = DetectResponse(
         report_id=report_id,
@@ -739,9 +767,10 @@ def detect(req: DetectRequest, db: Session = Depends(get_db)):
             "risk_score": score,
             "risk_level": level,
             "fraud_category": category,
-            "confidence": 0.85,
+            "confidence": confidence,
             "detected_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             "engine_used": engine_used,
+            "latency_ms": latency,
         },
         risk_factors=risk_factors,
         suggestions=suggestions,
@@ -861,8 +890,9 @@ _chat_no_adapter = None   # 可调用对象：返回「摘掉 LoRA」的上下�
 
 class ChatRequest(_PydBase):
     messages: list = []
-    max_new_tokens: int = 128
+    max_new_tokens: int = 256
     temperature: float = 0.7
+    stream: bool = False   # True: SSE 流式逐 token 返回（打字机效果）
 
 
 def _load_chat_model():
@@ -951,6 +981,44 @@ def chat(req: ChatRequest):
             gen_kwargs.update(do_sample=False)
         # 复用检测模型时临时摘掉 LoRA（对话用纯基座），不占额外显存
         adapter_ctx = no_adapter() if no_adapter else contextlib.nullcontext()
+
+        if req.stream:
+            # SSE 流式：generate 放后台线程，TextIteratorStreamer 逐 token 吐给前端
+            from transformers import TextIteratorStreamer
+            from fastapi.responses import StreamingResponse
+            import threading as _threading
+            streamer = TextIteratorStreamer(tok, skip_prompt=True, skip_special_tokens=True)
+
+            def _run_generate():
+                try:
+                    with torch.no_grad(), adapter_ctx:
+                        mdl.generate(**inputs, streamer=streamer, **gen_kwargs)
+                except Exception as _e:
+                    # 线程内异常无法通过迭代器自然结束，把错误作为文本块发出并结束流，
+                    # 避免前端永远等不到 [DONE]
+                    try:
+                        streamer.on_finalized_text("[生成出错: %s]" % _e, stream_end=True)
+                    except Exception:
+                        pass
+
+            _threading.Thread(target=_run_generate, daemon=True).start()
+
+            import json as _json
+
+            def sse():
+                try:
+                    for piece in streamer:
+                        if piece:
+                            yield "data: " + _json.dumps({"delta": piece}, ensure_ascii=False) + "\n\n"
+                    yield "data: [DONE]\n\n"
+                except Exception as e:
+                    yield "data: " + _json.dumps({"error": str(e)}, ensure_ascii=False) + "\n\n"
+
+            return StreamingResponse(
+                sse(), media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+
         with torch.no_grad(), adapter_ctx:
             out = mdl.generate(**inputs, **gen_kwargs)
         text = tok.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True).strip()

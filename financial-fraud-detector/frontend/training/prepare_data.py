@@ -195,11 +195,28 @@ def main():
     all_samples = []
     all_samples += load_jsonl(os.path.join(DATASET_DIR, "fraud_cases.jsonl"))
     all_samples += load_jsonl(os.path.join(DATASET_DIR, "fraud_cases_additional.jsonl"))
+    # 外部导入语料（506 条）与正常样本（92 条）：格式与 fraud_cases.jsonl 一致，
+    # 之前没被合并进训练集，导致训练数据只有 44 条、模型学不出稳定输出
+    all_samples += load_jsonl(os.path.join(DATASET_DIR, "fraud_cases_external.jsonl"))
+    all_samples += load_jsonl(os.path.join(DATASET_DIR, "fraud_cases_normal.jsonl"))
     all_samples += load_db_cases(os.path.join(BASE_DIR, "..", "backend", "fraud_detector.db"))
     all_samples += label_unstructured(
         os.path.join(BASE_DIR, "..", "案例.txt"),
         os.path.join(OUTPUT_DIR, "labeled_cases.jsonl"),
     )
+
+    # 过滤无类型标注的样本：fraud_type 缺失（"待分类"/空）会让模型学会输出"待分类"，
+    # 属于训练噪声。需要在管理后台「案例管理」里补标注后重新生成。
+    def _labeled(s):
+        try:
+            t = json.loads(s["output"]).get("fraud_type", "")
+        except Exception:
+            return False
+        return bool(t) and t not in ("待分类", "未知")
+    unlabeled = len(all_samples)
+    all_samples = [s for s in all_samples if _labeled(s)]
+    if unlabeled != len(all_samples):
+        print(f"已跳过 {unlabeled - len(all_samples)} 条未标注类型的样本（请补标注后重新生成）")
 
     all_samples = dedupe(all_samples)
     print(f"\n去重后样本总数: {len(all_samples)}")

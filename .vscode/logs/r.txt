@@ -1,0 +1,2 @@
+engine=finetuned | level=高风险 | type=冒充客服 | conf=0.45 | latency=27105ms
+summary=本地引擎离线分析完成：判定为「冒充客服」，风险评分 0.85（维度参考：心理操控 0.75、欺诈手法 0.60）。配置 DeepSeek Key 后可获得更精细的分析。
